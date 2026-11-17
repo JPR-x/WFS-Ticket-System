@@ -1,0 +1,1475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WFS Operations · Concept Prototype</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0c0c0c">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WFS Ops">
+<style>
+:root{
+  --paper:#f4f2ec;--card:#ffffff;--ink:#15191f;--ink2:#3b424d;--muted:#6b717b;
+  --line:#e2ded4;--graphite:#0c0c0c;--graphite2:#222222;--amber:#d71920;--amber-ink:#7a0f12;
+  --green:#1d6b43;--green-bg:#e3f4ec;--amberS:#4a4a4a;--amber-bg:#fdecec;
+  --blue:#3d3d3d;--blue-bg:#ededed;--red:#b3121a;--red-bg:#fbe5e5;
+  --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:"Inter","Segoe UI",system-ui,-apple-system,Arial,sans-serif;
+  --r:10px;
+}
+body[data-theme="dark"]{
+  --paper:#080808;--card:#161616;--ink:#eef1f5;--ink2:#c9d0da;--muted:#98a2b0;--line:#2e2e2e;
+  --green-bg:#133d2c;--green:#7fd9ae;--amber-bg:#3a1213;--amberS:#ff9b94;--blue-bg:#2a2a2a;--blue:#d6d6d6;--red-bg:#3a1213;--red:#ff9b94;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--sans);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid #d71920;outline-offset:2px}
+.skip{position:absolute;left:-9999px}.skip:focus{left:12px;top:12px;background:#fff;color:#000;padding:8px 12px;z-index:99}
+
+/* ---------- login ---------- */
+#login{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:20px;background:
+  radial-gradient(1200px 600px at 10% -10%,#4a1012 0,transparent 60%),var(--graphite)}
+#login.hide{display:none}
+.lcard{width:min(460px,100%);background:var(--card);color:var(--ink);border-radius:16px;padding:30px;box-shadow:0 30px 80px #0008}
+.lbrand{display:flex;gap:12px;align-items:center;margin-bottom:22px}
+.mark{width:42px;height:42px;border-radius:11px;background:var(--amber);color:#fff;display:grid;place-items:center;font-weight:900;font-size:19px;letter-spacing:-.02em}
+.lbrand b{display:block;font-size:17px}.lbrand small{color:var(--muted)}
+.lcard h1{font-size:24px;margin:0 0 4px;letter-spacing:-.02em}
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border-radius:10px;padding:4px;margin:18px 0}
+.seg button{border:0;background:transparent;padding:11px;border-radius:7px;font-weight:650;cursor:pointer;color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px #0002}
+.field{display:grid;gap:6px;margin-bottom:12px}
+label,.lbl{font-size:13px;font-weight:600;color:var(--ink2)}
+input,select,textarea{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);min-height:44px}
+textarea{min-height:90px;resize:vertical}
+input[readonly]{background:var(--paper)}
+.err{color:var(--red);font-size:13px;min-height:18px;margin:4px 0 0;font-weight:600}
+.creds{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cred{text-align:left;border:1px dashed var(--line);background:transparent;border-radius:9px;padding:10px;cursor:pointer;font-size:12px;color:var(--muted)}
+.cred b{display:block;color:var(--ink);font-size:13px}
+.disclaim{margin-top:14px;font-size:12px;color:var(--muted)}
+
+/* ---------- shell ---------- */
+#app{display:grid;grid-template-columns:248px minmax(0,1fr);min-height:100vh}
+#app.locked{display:none}
+aside{background:var(--graphite);color:#d6dce5;padding:22px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+aside .lbrand b{color:#fff}aside .lbrand small{color:#8f9aab}
+nav{display:grid;gap:3px;margin-top:22px}
+nav .grp{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6e7a8b;padding:14px 12px 6px}
+nav button{display:flex;justify-content:space-between;align-items:center;width:100%;background:none;border:0;color:#c4ccd8;text-align:left;padding:10px 12px;border-radius:8px;cursor:pointer;font-weight:550}
+nav button:hover{background:var(--graphite2);color:#fff}
+nav button[aria-current="page"]{background:var(--graphite2);color:#fff;box-shadow:inset 3px 0 0 var(--amber)}
+nav .count{font-size:12px;background:#2a2a2a;border-radius:20px;padding:1px 8px;color:#dfe5ee}
+.side-foot{margin-top:auto;font-size:12px;color:#7e899a;border-top:1px solid #2a2a2a;padding-top:14px}
+.side-foot button{margin-top:10px;width:100%;background:transparent;border:1px solid #3a3a3a;color:#d6dce5;border-radius:8px;padding:9px;cursor:pointer}
+.admin-only{display:none}body.role-admin .admin-only{display:flex}
+
+.main{min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 34px;border-bottom:1px solid var(--line);background:var(--paper);position:sticky;top:0;z-index:5}
+.top .crumb{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+.top h1{margin:2px 0 0;font-size:22px;letter-spacing:-.02em}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.chip{font-size:12px;font-weight:650;padding:6px 10px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:var(--ink2)}
+.chip.role{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.iconbtn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:13px;font-weight:600;min-height:36px}
+.content{padding:30px 34px 60px;max-width:1320px}
+.page{display:none}.page.on{display:block;animation:in .25s ease}
+@keyframes in{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ---------- primitives ---------- */
+.hero{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:22px}
+.hero p{margin:4px 0 0;color:var(--muted);max-width:620px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 15px;border-radius:9px;cursor:pointer;font-weight:600;min-height:42px;font-size:14px}
+.btn:hover{border-color:#b9b3a4}
+.btn.dark{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.btn.amber{background:var(--amber);color:var(--graphite);border-color:var(--amber)}
+.btn.ghost{background:transparent}
+.btn.sm{min-height:30px;padding:4px 10px;font-size:12px}
+.btn.danger{color:var(--red)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+.card h2{margin:0 0 4px;font-size:16px;letter-spacing:-.01em}
+.card .sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:20px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;position:relative;overflow:hidden}
+.stat::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--amber)}
+.stat .k{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.stat .v{font-size:34px;font-weight:750;letter-spacing:-.03em;margin-top:6px;font-variant-numeric:tabular-nums}
+.stat .n{font-size:13px;color:var(--muted)}
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1.4fr 1fr}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.stack{display:grid;gap:18px}
+.gap{margin-top:18px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line)}
+td{padding:13px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.mono,.mono{font-family:var(--mono);font-size:13px;font-weight:600}
+.tw{overflow-x:auto}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:650;padding:4px 10px;border-radius:999px;background:var(--paper);color:var(--ink2);white-space:nowrap}
+.pill::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.9}
+.pill.green{background:var(--green-bg);color:var(--green)}
+.pill.amber{background:#ececec;color:#222}
+.pill.blue{background:#ededed;color:#333}
+.pill.red{background:var(--red-bg);color:var(--red)}
+.tag{display:inline-block;font-size:12px;padding:3px 9px;border-radius:6px;background:var(--paper);color:var(--ink2);margin:0 4px 4px 0;border:1px solid var(--line)}
+.note{display:flex;gap:12px;padding:14px 16px;border-radius:12px;background:var(--amber-bg);color:var(--ink);font-size:14px;border:1px solid #f3b5b5;margin:16px 0}
+.note::before{content:"!";flex:none;width:22px;height:22px;border-radius:50%;background:var(--amber);color:#fff;font-weight:900;display:grid;place-items:center;font-size:13px}
+.note.info{background:var(--blue-bg);border-color:transparent}.note.info::before{content:"i";background:#333;color:#fff}
+.muted{color:var(--muted)}.small{font-size:13px}
+.empty{padding:26px;text-align:center;color:var(--muted)}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0;counter-reset:s;margin:6px 0 4px}
+.steps div{position:relative;padding:14px 12px 0;font-size:13px;color:var(--ink2);font-weight:600}
+.steps div::before{counter-increment:s;content:counter(s);display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);font-size:12px;margin-bottom:8px}
+.steps div::after{content:"";position:absolute;top:26px;left:38px;right:-4px;height:2px;background:var(--line)}
+.steps div:last-child::after{display:none}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.filters button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink2)}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:14px}
+.toolbar .l{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* roster */
+.person{display:flex;gap:14px;align-items:center}
+.av{width:44px;height:44px;border-radius:12px;background:var(--graphite);color:var(--amber);display:grid;place-items:center;font-weight:800;font-size:14px;flex:none}
+.person b{display:block}.person small{color:var(--muted)}
+.roster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.rcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:12px}
+
+/* forms */
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 16px}
+.form .full{grid-column:1/-1}
+.form h3{grid-column:1/-1;margin:8px 0 0;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);padding-bottom:6px}
+.form .field{margin:0}
+.checks{display:flex;flex-wrap:wrap;gap:8px}
+.checks label{display:flex;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--card);font-weight:550;cursor:pointer}
+.checks input{width:auto;min-height:0;accent-color:var(--ink)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;align-items:center}
+.drawer{display:none;margin-top:18px}.drawer.on{display:block;animation:in .2s}
+
+/* live progress */
+.bar{height:6px;border-radius:6px;background:var(--paper);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--ink)}
+
+/* admin */
+.saved{display:grid;gap:10px}
+.srow{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--paper)}
+.srow b{font-family:var(--mono);font-size:13px}.srow small{display:block;color:var(--muted)}
+.detail{display:none;margin-top:14px;border:1px solid var(--line);border-radius:12px;padding:18px;background:var(--paper)}
+.detail.on{display:block}
+.fld{padding:9px 0;border-bottom:1px solid var(--line)}.fld:last-child{border:0}
+.fld b{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block}
+.fld div{white-space:pre-wrap;margin-top:2px}
+
+/* toast */
+.toast{position:fixed;right:22px;bottom:22px;background:var(--graphite);color:#fff;padding:13px 18px;border-radius:12px;box-shadow:0 14px 40px #0006;display:none;max-width:420px;font-size:14px;z-index:60;border-left:4px solid var(--amber)}
+.toast.on{display:block;animation:in .2s}
+
+@media (max-width:1000px){
+  #app{grid-template-columns:minmax(0,1fr)}
+  aside{min-width:0}
+  aside{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;padding:14px}
+  nav{display:flex;flex-wrap:nowrap;overflow-x:auto;margin:0;gap:4px;flex:1 1 100%;min-width:0;padding-bottom:4px}
+  nav .grp{display:none}
+  nav button{width:auto;white-space:nowrap;flex:none}
+  nav .count{display:none}
+  .side-foot{margin:0;border:0;padding:0}.side-foot button{margin:0;width:auto}
+  .side-foot .who{display:none}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr 1fr;gap:16px}.steps div::after{display:none}
+  .top{padding:14px 18px;position:static}.content{padding:20px 18px}
+}
+@media (max-width:640px){
+  .form,.roster,.creds{grid-template-columns:1fr}
+  .stats{grid-template-columns:1fr 1fr}.stat .v{font-size:26px}
+  .top{flex-direction:column;align-items:flex-start}
+}
+body[data-theme="dark"] .lcard{background:var(--card)}
+body[data-theme="dark"] .btn.dark,body[data-theme="dark"] .filters button[aria-pressed="true"]{background:var(--amber);color:#fff;border-color:var(--amber)}
+body[data-theme="dark"] .chip.role{background:var(--amber);color:#fff;border-color:var(--amber)}
+body[data-theme="dark"] .steps div::before{background:var(--amber);color:#fff}
+body[data-theme="dark"] .bar i{background:var(--amber)}
+body[data-theme="dark"] .av{background:#2a2a2a;color:#ff5a5f}
+@media print{body{background:#fff}}
+
+/* ---------- offline / install ---------- */
+[hidden]{display:none!important}
+.netbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#0c0c0c;color:#fff;padding:10px 34px;font-size:14px;font-weight:600}
+.netbar button{background:#d71920;color:#fff;border:0}
+@media (max-width:640px){.netbar{padding:10px 16px}}
+/* ---------- tablet & phone support ---------- */
+body{padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (pointer:coarse){
+  .btn,.iconbtn,.filters button,nav button,.cred,.langBtn,.checks label{min-height:44px}
+  .btn{padding:11px 16px}
+  .btn.sm{min-height:44px;padding:9px 14px;font-size:14px}
+  input,select,textarea{min-height:46px;font-size:16px}
+  .checks input{width:22px;height:22px}
+}
+@media (max-width:640px){
+  .tw table,.tw tbody{display:block;width:100%}
+  .tw thead{display:none}
+  .tw tr{display:block;border:1px solid var(--line);border-radius:12px;padding:6px 12px;margin:0 0 10px;background:var(--card)}
+  .tw td{display:flex;justify-content:space-between;align-items:center;gap:12px;border:0;padding:8px 0;text-align:right;min-width:0;font-size:15px}
+  .tw td::before{content:attr(data-label);color:var(--muted);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;text-align:left;flex:none}
+  .tw td[colspan]{display:block;text-align:center}
+  .tw td[colspan]::before{content:none}
+  .card:has(> .tw){padding:10px}
+  .card .tw{overflow:visible}
+  .top{padding:12px 16px}
+  .top h1{font-size:19px}
+  .content{padding:18px 14px 80px}
+  .hero{margin-bottom:16px}
+  .hero h2{font-size:20px}
+  .stat{padding:14px 16px}
+  .stat .v{font-size:26px}
+  .card{padding:16px}
+  .toast{left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:none}
+  .toolbar .l input{width:100%!important}
+  .toolbar .l{width:100%}
+  .steps{grid-template-columns:1fr 1fr}
+}
+@media (min-width:641px) and (max-width:1100px){
+  .g2{grid-template-columns:minmax(0,1fr)}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .content{padding:24px 24px 60px}
+  .top{padding:14px 24px}
+  .roster{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<a class="skip" href="#content">Skip to content</a>
+
+<!-- LOGIN -->
+<div id="login" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <div class="lcard">
+    <div id="jsWarn" style="display:block;background:#fdecec;border:1px solid #f3b5b5;color:#7a0f12;border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:14px"><b>Scripts are not running in this viewer.</b> Sign-in needs JavaScript. Open the file directly in Chrome, Edge, Safari or Firefox (double-click it, or drag it into a browser window).</div>
+    <div style="text-align:right;margin-bottom:6px"><button class="langBtn" type="button" onclick="toggleLang()" style="border:1px solid var(--line);background:var(--card);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:13px">Español</button></div>
+    <div class="lbrand"><div class="mark">W</div><div><b>WFS Operations</b><small>Digital ticketing · concept demo</small></div></div>
+    <h1 id="loginTitle">Sign in</h1>
+    <div class="muted small">Sign in with your demo username and password.</div>
+    
+    <form id="loginForm" onsubmit="event.preventDefault();signIn()" onkeydown="if(event.key==='Enter'){event.preventDefault();signIn()}">
+      <div class="field"><label for="lUser">Username</label><input id="lUser" autocomplete="username" placeholder="Enter username"></div>
+      <div class="field"><label for="lPass">Password</label><input id="lPass" type="password" autocomplete="current-password" placeholder="Enter password"></div>
+      <div class="err" id="lErr" aria-live="polite"></div>
+      <button class="btn dark" type="button" onclick="signIn()" style="width:100%;justify-content:center">Sign in</button>
+    </form>
+    <div class="creds">
+      <button class="cred" type="button" onclick="fillCreds('mod')"><b>MOD</b>mod · MOD2026</button>
+      <button class="cred" type="button" onclick="fillCreds('sup')"><b>Supervisor</b>sup · SUP2026</button>
+      <button class="cred" type="button" onclick="fillCreds('admin')"><b>Administrator</b>admin · ADMIN2026</button>
+    </div>
+    <p class="disclaim">On iPad: tap Share, then Add to Home Screen. The app opens full-screen and keeps working offline after its first load.</p>
+    <p class="disclaim">Demo only. These fictional credentials are not secure authentication. Production access must use WFS-approved identity management with server-enforced permissions.</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="locked">
+  <aside>
+    <div class="lbrand"><div class="mark">W</div><div><b>Operations</b><small>Digital ticketing</small></div></div>
+    <nav aria-label="Main">
+      <div class="grp">Today</div>
+      <button data-page="dashboard" aria-current="page"><span>Dashboard</span></button>
+      <button data-page="flights"><span>Flight operations</span><span class="count" id="navFlights">0</span></button>
+      <button data-page="newticket"><span>New ticket</span></button>
+      <div class="grp">Crew & pay</div>
+      <button data-page="employees"><span>Roster</span></button>
+      <button data-page="supplemental"><span>Supplemental</span><span class="count" id="navSupp">0</span></button>
+      <button data-page="ams"><span>AMS services</span><span class="count" id="navAms">0</span></button>
+      <div class="grp">Documents</div>
+      <button data-page="reports"><span>Reports</span></button>
+      <button data-page="admin" class="admin-only"><span>Admin console</span></button>
+    </nav>
+    <div class="side-foot">
+      <div class="who" id="who">Signed out</div>
+      <button type="button" onclick="signOut()" style="min-height:44px">Sign out</button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div id="netBar" class="netbar" hidden><span id="netText"></span><button class="iconbtn" id="syncBtn" type="button" hidden onclick="syncNow()">Sync now</button></div>
+    <header class="top">
+      <div><div class="crumb" id="crumb">Workspace</div><h1 id="ttl">Dashboard</h1></div>
+      <div class="tools">
+        <span class="chip">Demo · fictional data</span>
+        <span class="chip role" id="roleChip">—</span>
+        <button class="iconbtn" id="installBtn" type="button" hidden>Install app</button>
+        <button class="iconbtn langBtn" type="button" onclick="toggleLang()">Español</button>
+        <button class="iconbtn" id="themeBtn" type="button" aria-pressed="false">Dark mode</button>
+      </div>
+    </header>
+
+    <main class="content" id="content" tabindex="-1">
+
+      <!-- DASHBOARD -->
+      <section id="dashboard" class="page on">
+        <div class="stats">
+          <div class="stat"><div class="k">Open flights</div><div class="v" id="sOpen">0</div><div class="n" id="sOpenN"></div></div>
+          <div class="stat"><div class="k">Closed today</div><div class="v" id="sDone">0</div><div class="n">Approved operations</div></div>
+          <div class="stat"><div class="k">Supplemental</div><div class="v" id="sSupp">0</div><div class="n" id="sSuppN"></div></div>
+          <div class="stat"><div class="k">AMS services</div><div class="v" id="sAms">0</div><div class="n">Recorded entries</div></div>
+        </div>
+        <div class="grid g2">
+          <div class="card">
+            <h2>Live board</h2><p class="sub">Operations in progress or awaiting sign-off</p>
+            <div class="tw"><table><thead><tr><th>Flight</th><th>Airline</th><th>Operation</th><th>Status</th></tr></thead><tbody id="boardBody"></tbody></table></div>
+            <div class="actions"><button class="btn dark" data-go="newticket">+ Create ticket</button><button class="btn" data-go="flights">All operations</button></div>
+          </div>
+          <div class="stack">
+            <div class="card">
+              <h2>Workflow</h2><p class="sub">Four steps from first call to approval</p>
+              <div class="steps"><div>Create flight</div><div>Record operation</div><div>Add eligible crew</div><div>Review & approve</div></div>
+              <div class="note info">Hourly employees can work operations without appearing on standard tickets. If they are called outside their schedule, pay is recorded on a supplemental ticket.</div>
+            </div>
+            <div class="card">
+              <h2>Offline on the ramp</h2><p class="sub">Recommended production design</p>
+              <div class="steps" style="grid-template-columns:1fr 1fr;row-gap:18px"><div>Sync before shift</div><div>Record offline</div><div>Queue on device</div><div>Sync on reconnect</div></div>
+              <div class="note">PDFs can usually be printed without internet. Sending records, refreshing schedules, and sharing updates need a connection unless an approved offline-sync design is in place.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLIGHTS -->
+      <section id="flights" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">Flight operations</h2><p>Loading and unloading records linked to a flight reference.</p></div>
+          <div class="actions" style="margin:0"><button class="btn" type="button" onclick="exportCSV()">Export CSV</button><button class="btn dark" data-go="newticket">+ New ticket</button></div></div>
+        <div id="opDlg" class="card drawer" role="dialog" aria-labelledby="opTitle" style="margin-bottom:16px"><h2 id="opTitle"></h2><p class="sub" id="opSub"></p><div class="form"><div class="field" id="opTimeWrap"><label for="opTime">Finish time (24-hour)</label><div style="display:flex;gap:8px"><input id="opTime" type="time" style="flex:1"><button class="btn sm" type="button" onclick="setOpNow()">Now</button></div></div><div class="field full" id="opReasonWrap" hidden><label for="opReason">Reason for void (required)</label><textarea id="opReason"></textarea></div></div><div class="actions"><button class="btn dark" type="button" id="opOk">Confirm</button><button class="btn ghost" type="button" onclick="closeOp()">Cancel</button></div></div>
+<div class="filters" role="group" aria-label="Filter flights">
+          <button type="button" aria-pressed="true" data-f="all">All</button>
+          <button type="button" aria-pressed="false" data-f="open">Open</button>
+          <button type="button" aria-pressed="false" data-f="Approved">Approved</button>
+        </div>
+        <div class="card" style="padding:6px 8px"><div class="tw"><table><thead><tr><th>ID</th><th>Date</th><th>Flight</th><th>Callsign</th><th>Operation</th><th>Time</th><th>Status</th></tr></thead><tbody id="flightBody"></tbody></table></div></div>
+      </section>
+
+      <!-- NEW TICKET -->
+      <section id="newticket" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">New operation ticket</h2><p>Loading or unloading record. Saved in this browser only.</p></div></div>
+        <div class="card">
+          <form id="ticketForm" class="form" novalidate>
+            <h3>Flight</h3>
+            <div class="field"><label for="tAir">Airline</label><select id="tAir" required><option value="">Select airline</option><option>Demo Air</option><option>Northstar Cargo</option><option>Sample Logistics Air</option></select></div>
+            <div class="field"><label for="tNo">Flight number</label><input id="tNo" required placeholder="e.g. DA204"></div>
+            <div class="field"><label for="tCall">Aircraft callsign</label><input id="tCall" placeholder="e.g. DEMO204"></div>
+            <div class="field"><label for="tOp">Operation type</label><select id="tOp" required onchange="toggleCargo()"><option value="Loading">Loading</option><option value="Unloading">Unloading</option></select></div>
+            <h3>Timing</h3>
+            <div class="field"><label for="tDate">Operation date</label><input id="tDate" type="date"></div>
+            <div class="field"><label for="tBlock">Block-in time</label><input id="tBlock" type="time"></div>
+            <div class="field"><label for="tStart">Start time</label><input id="tStart" type="time" required></div>
+            <div class="field"><label for="tEnd">Finish time <span class="muted">(optional)</span></label><input id="tEnd" type="time"></div>
+            <h3>Cargo & crew</h3>
+            <div class="field" data-cargo="load"><label for="tPl">Pallets loaded</label><input id="tPl" type="number" min="0" placeholder="0"></div>
+            <div class="field" data-cargo="off"><label for="tPo">Pallets offloaded</label><input id="tPo" type="number" min="0" placeholder="0"></div>
+            <div class="field"><label for="tBulk">Bulk cargo (kg)</label><input id="tBulk" type="number" min="0" step="0.1" placeholder="0"></div>
+            <div class="field"><label for="tLm">Loadmaster</label><input id="tLm" placeholder="Demo loadmaster"></div>
+            <div class="field full"><label for="tCrew">Pre-work crew (automatic)</label><input id="tCrew" readonly placeholder="Filled from today's schedule"><span class="small muted">Pre-work employees scheduled today are paid on this ticket automatically. Hourly employees are not listed.</span></div>
+            <div class="field full"><label for="tNotes">Notes</label><textarea id="tNotes" placeholder="Demo notes"></textarea></div>
+            <h3>AMS services (optional)</h3><div class="field full"><label>AMS services performed on this flight</label><div class="checks" id="amsChecks"><label><input type="checkbox" value="Pushback"> Pushback</label><label><input type="checkbox" value="Aircraft cleaning"> Aircraft cleaning</label><label><input type="checkbox" value="Lavatory service"> Lavatory service</label><label><input type="checkbox" value="Water service"> Water service</label><label><input type="checkbox" value="De-icing"> De-icing</label><label data-op="Unloading" hidden><input type="checkbox" value="Stairs service"> Stairs service</label></div></div><div class="field"><label for="tAmsProv">AMS provider</label><input id="tAmsProv" value="Demo Ground Services"></div><div class="field"><label for="tAmsInv">AMS invoice reference</label><input id="tAmsInv" placeholder="DEMO-INV-04"></div><div class="field full"><label for="tAmsTime">AMS completion time (24-hour) <span class="muted">(leave blank if pending)</span></label><div style="display:flex;gap:8px"><input id="tAmsTime" type="time" style="flex:1"><button class="btn sm" type="button" onclick="setAmsNow()">Now</button></div></div>
+<div class="actions full"><button class="btn dark" type="submit">Save ticket</button><button class="btn" type="button" onclick="printTicket()">Print / save as PDF</button><button class="btn ghost" type="reset">Clear</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- ROSTER -->
+      <section id="employees" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">Roster</h2><p>Weekly schedule. Each employee has two consecutive days off. Names and IDs are fictional.</p></div></div>
+        <div class="stats" style="margin-bottom:18px">
+          <div class="stat"><div class="k">Scheduled</div><div class="v">4</div></div>
+          <div class="stat"><div class="k">Present</div><div class="v">3</div></div>
+          <div class="stat"><div class="k">On leave</div><div class="v">1</div></div>
+          <div class="stat"><div class="k">Shift</div><div class="v" style="font-size:26px">Day</div><div class="n">Group A rotation</div></div>
+        </div>
+        <div class="roster" id="rosterGrid"></div>
+      </section>
+
+      <!-- SUPPLEMENTAL -->
+      <section id="supplemental" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">Supplemental tickets</h2><p>Extra work called outside scheduled hours. Actual and authorized hours are tracked separately.</p></div>
+          <button class="btn dark" type="button" onclick="toggle('suppForm')">+ New supplemental</button></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Minimum paid</div><div class="v">4 h</div><div class="n">Example policy</div></div>
+          <div class="stat"><div class="k">Example rate</div><div class="v">$22.53</div><div class="n">Placeholder · confirm with payroll</div></div>
+          <div class="stat"><div class="k">Payable today (approved)</div><div class="v" id="ex4">$0.00</div><div class="n">Approved supplemental tickets dated today</div></div>
+          <div class="stat"><div class="k">Awaiting MOD</div><div class="v" id="sPend">0</div><div class="n">Needs approval</div></div>
+        </div>
+        <div class="card" style="padding:6px 8px"><div class="tw"><table><thead><tr><th>Ticket</th><th>Employee</th><th>Category</th><th>Actual h</th><th>Paid h</th><th>Amount</th><th>Status</th></tr></thead><tbody id="suppBody"></tbody></table></div></div>
+        <div id="suppForm" class="card drawer">
+          <h2>New supplemental ticket</h2><p class="sub">Employee must be on the demo roster and not on leave.</p>
+          <form id="suppDemoForm" class="form" novalidate>
+            <div class="field"><label for="sEid">Employee ID</label><input id="sEid" list="rosterIds" placeholder="DEMO-104" required><datalist id="rosterIds"></datalist></div>
+            <div class="field"><label for="sCat">Pay category</label><input id="sCat" readonly placeholder="Filled from roster"></div>
+            <div class="field"><label for="sDate">Call-in date</label><input id="sDate" type="date"></div>
+            <div class="field"><label for="sSched">Was employee scheduled?</label><select id="sSched"><option>No — called outside schedule</option><option>Yes — outside scheduled hours</option></select></div>
+            <div class="field"><label for="sAct">Actual hours worked</label><input id="sAct" type="text" inputmode="decimal" placeholder="e.g. 1.5 or 1:30" required></div>
+            <div class="field"><label for="sPaid">Authorized paid hours (min 4)</label><input id="sPaid" type="number" step=".5" min="4" value="4" required></div>
+            <div class="field"><label for="sRate">Rate</label><input id="sRate" value="$22.53 (demo placeholder)" readonly></div>
+            <div class="field"><label for="sMod">MOD approver</label><input id="sMod" placeholder="Demo MOD"></div>
+            <p class="err" id="sErr" role="alert"></p><div class="actions full"><button class="btn dark" type="submit">Save supplemental</button><button class="btn ghost" type="button" onclick="toggle('suppForm')">Cancel</button></div>
+          </form>
+        </div>
+        <div class="note info">Actual hours and authorized paid hours are separate. This demo does not determine legal overtime eligibility or replace WFS payroll policy.</div>
+      </section>
+
+      <!-- AMS -->
+      <section id="ams" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">AMS services</h2><p>Services performed by the provider, tracked for invoice reconciliation.</p></div>
+          <button class="btn dark" type="button" onclick="toggle('amsForm')">+ Record service</button></div>
+        <div class="card" style="padding:6px 8px"><div class="tw"><table><thead><tr><th>Service</th><th>Flight</th><th>Type</th><th>Provider</th><th>Done</th><th>Time</th><th>Invoice</th></tr></thead><tbody id="amsBody"></tbody></table></div></div>
+        <div id="amsForm" class="card drawer">
+          <h2>Record AMS service</h2>
+          <form id="amsFormEl" class="form" novalidate>
+            <div class="field"><label for="aFl">Flight</label><select id="aFl"></select></div>
+            <div class="field"><label for="aSvc">Service</label><select id="aSvc"><option value="Pushback">Pushback</option><option value="Aircraft cleaning">Aircraft cleaning</option><option value="Lavatory service">Lavatory service</option><option value="Water service">Water service</option><option value="De-icing">De-icing</option></select></div>
+            <div class="field"><label for="aProv">Provider</label><input id="aProv" value="Demo Ground Services"></div>
+            <div class="field"><label for="aDone">Completed?</label><select id="aDone"><option value="Yes">Yes</option><option value="Pending">Pending</option></select></div>
+            <div class="field"><label for="aTime">Completion time</label><input id="aTime" type="time"></div>
+            <div class="field"><label for="aInv">Invoice reference</label><input id="aInv" placeholder="DEMO-INV-03"></div>
+            <div class="actions full"><button class="btn dark" type="submit">Save service</button><button class="btn ghost" type="button" onclick="toggle('amsForm')">Cancel</button></div>
+          </form>
+        </div>
+      </section>
+
+      <!-- REPORTS -->
+      <section id="reports" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">Reports & documentation</h2><p>Templates modeled on WFS form structure. Demonstration only, not official forms.</p></div></div>
+        <div class="grid g2">
+          <div class="card">
+            <h2>Operational summary</h2><p class="sub">Tickets, timing, cargo counts and approvals</p>
+            <div style="margin-bottom:14px"><span class="tag">Tickets by date</span><span class="tag">Pallet counts</span><span class="tag">Bulk kg</span><span class="tag">Crew participation</span></div>
+            <button class="btn" type="button" onclick="printOps()">Preview summary</button>
+          </div>
+          <div class="card">
+            <h2>Payroll & AMS reconciliation</h2><p class="sub">Airline revenue, compensation and AMS expenses are kept separate</p>
+            <div style="margin-bottom:14px"><span class="tag">Supplemental</span><span class="tag">Hourly summary</span><span class="tag">AMS records</span></div>
+            <button class="btn" type="button" onclick="toast('Payroll summary is not connected to payroll in this demo.')">Preview summary</button>
+          </div>
+        </div>
+        <div class="grid g2 gap">
+          <div class="card">
+            <h2>Incident report</h2><p class="sub">Statement covering involvement, event, witnesses and sign-off</p>
+            <button class="btn dark" type="button" onclick="toggle('incForm')">Open incident report</button>
+          </div>
+          <div class="card">
+            <h2>Employee corrective action</h2><p class="sub">Attendance, safety, policy, performance or conduct discussions</p>
+            <button class="btn dark" type="button" onclick="toggle('corForm')">Open corrective action</button>
+          </div>
+        </div>
+
+        <div id="incForm" class="card drawer">
+          <h2>Incident report · demo template</h2>
+          <div class="note">Use fictional information only.</div>
+          <form id="incDemoForm" class="form" novalidate>
+            <h3>Employee</h3>
+            <div class="field"><label for="iId">Employee ID (fictional)</label><input id="iId" placeholder="DEMO-###"></div>
+            <div class="field"><label for="iName">Employee name (fictional)</label><input id="iName" placeholder="Demo employee"></div>
+            <div class="field"><label for="iJob">Job title</label><input id="iJob" placeholder="e.g. Ramp agent"></div>
+            <div class="field"><label for="iLob">Line of business</label><input id="iLob" placeholder="e.g. Cargo"></div>
+            <div class="field"><label for="iSta">Station</label><input id="iSta" placeholder="Demo station"></div>
+            <div class="field"><label for="iMgr">Manager receiving statement</label><input id="iMgr" placeholder="Demo supervisor"></div>
+            <h3>Event</h3>
+            <div class="field"><label for="iDate">Incident date</label><input id="iDate" type="date"></div>
+            <div class="field"><label for="iWhen">Time (approximate)</label><input id="iWhen" placeholder="e.g. around 14:30"></div>
+            <div class="field"><label for="iInv">Involvement</label><select id="iInv"><option>Involved employee</option><option>Witness</option><option>Leader</option></select></div>
+            <div class="field"><label for="iType">Incident type</label><select id="iType"><option>Safety incident</option><option>Property / equipment damage</option><option>HR incident (policy / rule)</option><option>Other</option></select></div>
+            <div class="field"><label for="iEq">Equipment ID (if any)</label><input id="iEq" placeholder="Demo equipment ID"></div>
+            <div class="field"><label for="iLoc">Location</label><input id="iLoc" placeholder="Demo work area"></div>
+            <div class="field full"><label for="iWho">Who was involved?</label><textarea id="iWho"></textarea></div>
+            <div class="field full"><label for="iWhat">What happened?</label><textarea id="iWhat" placeholder="Sequence of events and relevant circumstances"></textarea></div>
+            <div class="field full"><label for="iWit">Witnesses (name and position)</label><textarea id="iWit"></textarea></div>
+            <h3>Sign-off</h3>
+            <div class="field"><label for="iEsig">Employee acknowledgement</label><input id="iEsig" placeholder="Demo acknowledgement"></div>
+            <div class="field"><label for="iEdate">Employee sign-off date</label><input id="iEdate" type="date"></div>
+            <div class="field"><label for="iMsig">Manager acknowledgement</label><input id="iMsig" placeholder="Demo manager"></div>
+            <div class="field"><label for="iMdate">Manager sign-off date</label><input id="iMdate" type="date"></div>
+            <div class="actions full"><button class="btn dark" type="submit">Save report</button><button class="btn" type="button" onclick="printForm('incDemoForm','Incident Report')">Print / PDF</button><button class="btn ghost" type="reset">Clear</button></div>
+          </form>
+        </div>
+
+        <div id="corForm" class="card drawer">
+          <h2>Employee corrective action · demo template</h2>
+          <div class="note">Use fictional information only. This template does not make disciplinary decisions.</div>
+          <form id="corDemoForm" class="form" novalidate>
+            <h3>Employee</h3>
+            <div class="field"><label for="cId">Employee ID (fictional)</label><input id="cId" placeholder="DEMO-###"></div>
+            <div class="field"><label for="cName">Employee name (fictional)</label><input id="cName" placeholder="Demo employee"></div>
+            <div class="field"><label for="cJob">Job title</label><input id="cJob" placeholder="e.g. Ramp agent"></div>
+            <div class="field"><label for="cSta">Station</label><input id="cSta" placeholder="Demo station"></div>
+            <div class="field"><label for="cMgr">Manager</label><input id="cMgr" placeholder="Demo manager"></div>
+            <div class="field"><label for="cDate">Incident date</label><input id="cDate" type="date"></div>
+            <h3>Infraction category</h3>
+            <div class="field full"><div class="checks" role="group" aria-label="Infraction categories">
+              <label><input type="checkbox" value="Attendance / tardiness"> Attendance / tardiness</label>
+              <label><input type="checkbox" value="Safety"> Safety</label>
+              <label><input type="checkbox" value="Policy violation"> Policy violation</label>
+              <label><input type="checkbox" value="Performance"> Performance</label>
+              <label><input type="checkbox" value="Conflict of interest"> Conflict of interest</label>
+              <label><input type="checkbox" value="Conduct / behavior"> Conduct / behavior</label>
+            </div></div>
+            <h3>Description & plan</h3>
+            <div class="field full"><label for="cDesc">Incident / performance description</label><textarea id="cDesc"></textarea></div>
+            <div class="field full"><label for="cWhy">5 Whys / contributing factors</label><textarea id="cWhy" placeholder="Why 1… Why 2…"></textarea></div>
+            <div class="field full"><label for="cPlan">Next steps / action plan</label><textarea id="cPlan"></textarea></div>
+            <div class="field"><label for="cAct">Action taken</label><select id="cAct"><option>Documented verbal discussion</option><option>First warning</option><option>Final warning</option><option>Termination</option></select></div>
+            <div class="field"><label for="cPrior">Previous documented action</label><input id="cPrior" placeholder="Type and date, or none"></div>
+            <h3>Acknowledgement</h3>
+            <div class="field"><label for="cUnion">Union representative (if applicable)</label><input id="cUnion"></div>
+            <div class="field"><label for="cDist">Distribution</label><select id="cDist"><option>Personally handed to employee</option><option>Employee declined to accept</option><option>Sent via employee email after discussion</option></select></div>
+            <div class="field"><label for="cEsig">Employee acknowledgement</label><input id="cEsig"></div>
+            <div class="field"><label for="cEdate">Employee sign-off date</label><input id="cEdate" type="date"></div>
+            <div class="field"><label for="cMsig">Manager signature</label><input id="cMsig"></div>
+            <div class="field"><label for="cMdate">Manager sign-off date</label><input id="cMdate" type="date"></div>
+            <div class="actions full"><button class="btn dark" type="submit">Save report</button><button class="btn" type="button" onclick="printForm('corDemoForm','Employee Corrective Action Report')">Print / PDF</button><button class="btn ghost" type="reset">Clear</button></div>
+          </form>
+        </div>
+        <div class="note info gap">PDFs open in your browser's print dialog. Choose “Save as PDF.” Nothing is uploaded.</div>
+      </section>
+
+      <!-- ADMIN -->
+      <section id="admin" class="page">
+        <div class="hero"><div><h2 style="margin:0;font-size:22px">Administrator console</h2><p>Restricted view. Figures are calculated from demo records in this browser.</p></div>
+          <button class="btn danger" type="button" onclick="resetDemo()">Reset demo data</button></div>
+        <div class="note">Access boundary: MODs and Supervisors do not see this page. Approval is not proof of payment.</div>
+        <div class="stats">
+          <div class="stat"><div class="k">Approved</div><div class="v" id="aApp">$0</div></div>
+          <div class="stat"><div class="k">Pending authorization</div><div class="v" id="aPen">$0</div></div>
+          <div class="stat"><div class="k">Total exposure</div><div class="v" id="aTot">$0</div><div class="n">Approved + pending</div></div>
+          <div class="stat"><div class="k">Tickets</div><div class="v" id="aTk">0</div><div class="n" id="aTkN"></div></div>
+        </div>
+        <div class="grid g2">
+          <div class="card"><h2>Supplemental ledger</h2><p class="sub">Requested, authorized and paid amounts should be separated in production.</p>
+            <div class="tw"><table><thead><tr><th>Ticket</th><th>Employee</th><th>Status</th><th>Basis</th><th>Amount</th></tr></thead><tbody id="ledgerBody"></tbody></table></div></div>
+          <div class="card"><h2>Storage design</h2><p class="sub">Proposed production locations</p>
+            <div class="tw"><table><thead><tr><th>Data</th><th>Location</th><th>Access</th></tr></thead><tbody>
+              <tr><td>Flights & tickets</td><td>Operational tables</td><td>MOD, Supervisor, Admin</td></tr>
+              <tr><td>Roster snapshots</td><td>Restricted schedule tables</td><td>Authorized ops, Admin</td></tr>
+              <tr><td>Supplemental pay</td><td>Restricted pay tables</td><td>MOD workflow; Admin / Payroll</td></tr>
+              <tr><td>Incident & corrective</td><td>HR-approved repository</td><td>HR-authorized only</td></tr>
+            </tbody></table></div>
+            <div class="note info">This prototype stores records in this browser only. No server, payroll, or WFS system is connected.</div></div>
+        </div>
+        <div class="card gap">
+          <h2>Completed reports</h2><p class="sub">Incident and corrective-action reports saved in this browser.</p>
+          <div class="toolbar">
+            <div class="l">
+              <input id="rSearch" type="search" placeholder="Search ID, type, or content" style="width:260px" oninput="renderSaved()">
+              <input id="rFrom" type="date" onchange="renderSaved()" aria-label="From date" style="width:auto">
+              <input id="rTo" type="date" onchange="renderSaved()" aria-label="To date" style="width:auto">
+              <button class="btn ghost sm" type="button" onclick="clearFilters()">Clear filters</button>
+            </div>
+            <span class="chip" id="rCount">0 reports</span>
+          </div>
+          <div id="savedList" class="saved"></div>
+          <div id="savedDetail" class="detail"></div>
+        </div>
+        <div class="card gap">
+          <h2>Audit trail</h2><p class="sub">Every sign-in, create, approval, finish, void and report save.</p>
+          <div class="tw"><table><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Record</th></tr></thead><tbody id="logBody"></tbody></table></div>
+        </div>
+        <div class="card gap">
+          <h2>Admin review checklist</h2>
+          <div class="checks" style="margin-top:8px">
+            <span class="tag">Supplemental totals vs payroll</span><span class="tag">Pending MOD approvals</span><span class="tag">Duplicate tickets</span><span class="tag">Offline sync exceptions</span><span class="tag">AMS invoice matching</span><span class="tag">User access review</span>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+document.getElementById('jsWarn').style.display='none';
+
+/* ============ language ============ */
+let LANG='en';
+try{LANG=localStorage.getItem('wfs-v7-lang')==='es'?'es':'en'}catch(e){}
+const ES={
+ "Digital ticketing · concept demo":"Gestión digital · demostración conceptual",
+ "Sign in":"Iniciar sesión",
+ "Sign in with your demo username and password.":"Inicie sesión con su usuario y contraseña demo.",
+ "MOD / Supervisor":"MOD / Supervisor",
+ "Administrator":"Administrador",
+ "Username":"Usuario",
+ "Password":"Contraseña",
+ "Enter username":"Ingrese usuario",
+ "Enter password":"Ingrese contraseña",
+ "Demo only. These fictional credentials are not secure authentication. Production access must use WFS-approved identity management with server-enforced permissions.":"Solo demostración. Estas credenciales ficticias no son autenticación segura. El acceso en producción debe usar gestión de identidad aprobada por WFS, con permisos aplicados en el servidor.",
+ "Scripts are not running in this viewer.":"Los scripts no se están ejecutando en este visor.",
+ "Sign-in needs JavaScript. Open the file directly in Chrome, Edge, Safari or Firefox (double-click it, or drag it into a browser window).":"El inicio de sesión necesita JavaScript. Abra el archivo directamente en Chrome, Edge, Safari o Firefox (haga doble clic o arrástrelo a una ventana del navegador).",
+ "Skip to content":"Ir al contenido",
+ "Digital ticketing":"Gestión digital",
+ "Operations":"Operaciones",
+ "Today":"Hoy",
+ "Crew & pay":"Personal y pago",
+ "Documents":"Documentos",
+ "Restricted":"Restringido",
+ "Dashboard":"Panel",
+ "Flight operations":"Operaciones de vuelo",
+ "New ticket":"Nuevo ticket",
+ "Roster":"Lista de personal",
+ "Supplemental":"Suplementarios",
+ "AMS services":"Servicios AMS",
+ "Reports":"Reportes",
+ "Admin console":"Consola de admin",
+ "Signed out":"Sesión cerrada",
+ "Sign out":"Cerrar sesión",
+ "Workspace":"Espacio de trabajo",
+ "Demo · fictional data":"Demo · datos ficticios",
+ "Dark mode":"Modo oscuro",
+ "Light mode":"Modo claro",
+ "Administrator sign in":"Inicio de sesión de administrador",
+ "MOD / Supervisor sign in":"Inicio de sesión MOD / Supervisor",
+ "Administrator session":"Sesión de administrador",
+ "MOD session":"Sesión MOD",
+ "Signed in as":"Sesión iniciada como",
+ "The demo username or password is incorrect.":"El usuario o la contraseña demo es incorrecto.",
+ "Administrator access is required.":"Se requiere acceso de administrador.",
+ "Open flights":"Vuelos abiertos",
+ "Closed today":"Cerrados hoy",
+ "Approved operations":"Operaciones aprobadas",
+ "Recorded entries":"Registros",
+ "Live board":"Tablero en vivo",
+ "Operations in progress or awaiting sign-off":"Operaciones en curso o pendientes de firma",
+ "Flight":"Vuelo",
+ "Airline":"Aerolínea",
+ "Operation":"Operación",
+ "Status":"Estado",
+ "+ Create ticket":"+ Crear ticket",
+ "All operations":"Todas las operaciones",
+ "Workflow":"Flujo de trabajo",
+ "Four steps from first call to approval":"Cuatro pasos desde la primera llamada hasta la aprobación",
+ "Create flight":"Crear vuelo",
+ "Record operation":"Registrar operación",
+ "Add eligible crew":"Agregar personal elegible",
+ "Review & approve":"Revisar y aprobar",
+ "Hourly employees can work operations without appearing on standard tickets. If they are called outside their schedule, pay is recorded on a supplemental ticket.":"Los empleados por hora pueden trabajar en operaciones sin aparecer en tickets estándar. Si son llamados fuera de su horario, el pago se registra en un ticket suplementario.",
+ "Offline on the ramp":"Sin conexión en la plataforma",
+ "Recommended production design":"Diseño recomendado para producción",
+ "Sync before shift":"Sincronizar antes del turno",
+ "Record offline":"Registrar sin conexión",
+ "Queue on device":"Guardar en cola en el dispositivo",
+ "Sync on reconnect":"Sincronizar al reconectar",
+ "PDFs can usually be printed without internet. Sending records, refreshing schedules, and sharing updates need a connection unless an approved offline-sync design is in place.":"Los PDF normalmente se pueden imprimir sin internet. Enviar registros, actualizar horarios y compartir cambios requiere conexión, salvo que exista un diseño de sincronización sin conexión aprobado.",
+ "Loading and unloading records linked to a flight reference.":"Registros de carga y descarga vinculados a una referencia de vuelo.",
+ "Export CSV":"Exportar CSV",
+ "+ New ticket":"+ Nuevo ticket",
+ "All":"Todos",
+ "Open":"Abiertos",
+ "Approved":"Aprobado",
+ "ID":"ID",
+ "Date":"Fecha",
+ "Callsign":"Indicativo",
+ "Time":"Hora",
+ "Draft":"Borrador",
+ "In progress":"En curso",
+ "Awaiting sign-off":"Pendiente de firma",
+ "Pending MOD":"Pendiente MOD",
+ "Pending":"Pendiente",
+ "Yes":"Sí",
+ "Loading":"Carga",
+ "Unloading":"Descarga",
+ "Approve":"Aprobar",
+ "Finish":"Finalizar",
+ "No open operations.":"No hay operaciones abiertas.",
+ "No operations match this filter.":"Ninguna operación coincide con este filtro.",
+ "loading":"carga",
+ "unloading":"descarga",
+ "awaiting approval":"pendientes de aprobación",
+ "New operation ticket":"Nuevo ticket de operación",
+ "Loading or unloading record. Saved in this browser only.":"Registro de carga o descarga. Guardado solo en este navegador.",
+ "Flight":"Vuelo",
+ "Timing":"Horarios",
+ "Cargo & crew":"Carga y personal",
+ "Flight number":"Número de vuelo",
+ "Aircraft callsign":"Indicativo de aeronave",
+ "Operation type":"Tipo de operación",
+ "Operation date":"Fecha de operación",
+ "Block-in time":"Hora de llegada a posición",
+ "Start time":"Hora de inicio",
+ "Finish time":"Hora de fin",
+ "(optional)":"(opcional)",
+ "Pallets loaded":"Paletas cargadas",
+ "Pallets offloaded":"Paletas descargadas",
+ "Bulk cargo offloaded (kg)":"Carga a granel descargada (kg)",
+ "Loadmaster":"Loadmaster",
+ "Pre-work employee IDs":"IDs de personal de pre-trabajo",
+ "(only if applicable)":"(solo si aplica)",
+ "Do not list regular hourly employees on standard tickets.":"No incluya empleados por hora regulares en tickets estándar.",
+ "Notes":"Notas",
+ "Select airline":"Seleccione aerolínea",
+ "Save ticket":"Guardar ticket",
+ "Print / save as PDF":"Imprimir / guardar como PDF",
+ "Clear":"Limpiar",
+ "e.g. DA204":"ej. DA204",
+ "e.g. DEMO204":"ej. DEMO204",
+ "e.g. DEMO-101, DEMO-104":"ej. DEMO-101, DEMO-104",
+ "Demo loadmaster":"Loadmaster de demo",
+ "Demo notes":"Notas de demo",
+ "Complete airline, flight number and start time.":"Complete aerolínea, número de vuelo y hora de inicio.",
+ "Finish time must be later than start time.":"La hora de fin debe ser posterior a la de inicio.",
+ "is not on the demo roster.":"no está en la lista demo.",
+ "is hourly: keep off standard tickets (use a supplemental ticket).":"es por hora: no lo incluya en tickets estándar (use un ticket suplementario).",
+ "is on leave and cannot be assigned.":"está de licencia y no puede asignarse.",
+ "saved.":"guardado.",
+ "approved.":"aprobado.",
+ "finished. Awaiting sign-off.":"finalizado. Pendiente de firma.",
+ "Enter a time later than the start":"Ingrese una hora posterior al inicio",
+ "Finish time (HH:MM, 24-hour)":"Hora de fin (HH:MM, 24 horas)",
+ "Could not save in browser storage.":"No se pudo guardar en el almacenamiento del navegador.",
+ "Roster":"Lista de personal",
+ "Schedule and attendance for today. Names and IDs are fictional.":"Horario y asistencia de hoy. Nombres e IDs ficticios.",
+ "Scheduled":"Programados",
+ "Present":"Presentes",
+ "On leave":"De licencia",
+ "Shift":"Turno",
+ "Day":"Día",
+ "Group A rotation":"Rotación grupo A",
+ "Group":"Grupo",
+ "Pre-work":"Pre-trabajo",
+ "Hourly":"Por hora",
+ "List on eligible operation tickets":"Incluir en tickets de operación elegibles",
+ "Regular timekeeping. Supplemental ticket if called out of schedule":"Control de horario regular. Ticket suplementario si se llama fuera de horario",
+ "not assigned while on leave":"no asignado durante la licencia",
+ "Supplemental tickets":"Tickets suplementarios",
+ "Extra work called outside scheduled hours. Actual and authorized hours are tracked separately.":"Trabajo adicional llamado fuera del horario programado. Las horas reales y autorizadas se registran por separado.",
+ "+ New supplemental":"+ Nuevo suplementario",
+ "Minimum paid":"Mínimo pagado",
+ "Example policy":"Política de ejemplo",
+ "Example rate":"Tarifa de ejemplo",
+ "Placeholder · confirm with payroll":"Marcador · confirmar con nómina",
+ "4-hour example":"Ejemplo de 4 horas",
+ "Awaiting MOD":"Esperando MOD",
+ "Needs approval":"Requiere aprobación",
+ "New supplemental ticket":"Nuevo ticket suplementario",
+ "Employee must be on the demo roster and not on leave.":"El empleado debe estar en la lista demo y no en licencia.",
+ "Employee ID":"ID de empleado",
+ "Pay category":"Categoría de pago",
+ "Call-in date":"Fecha de llamado",
+ "Was employee scheduled?":"¿Estaba programado el empleado?",
+ "Actual hours worked":"Horas trabajadas reales",
+ "Authorized paid hours (min 4)":"Horas pagadas autorizadas (mín. 4)",
+ "Rate":"Tarifa",
+ "MOD approver":"Aprobador MOD",
+ "No — called outside schedule":"No — llamado fuera de horario",
+ "Yes — outside scheduled hours":"Sí — fuera de horario programado",
+ "Filled from roster":"Se completa desde la lista",
+ "Save supplemental":"Guardar suplementario",
+ "Cancel":"Cancelar",
+ "Actual hours and authorized paid hours are separate. This demo does not determine legal overtime eligibility or replace WFS payroll policy.":"Las horas reales y las horas pagadas autorizadas son independientes. Esta demo no determina la elegibilidad legal de horas extra ni reemplaza la política de nómina de WFS.",
+ "Services performed by the provider, tracked for invoice reconciliation.":"Servicios realizados por el proveedor, registrados para conciliación de facturas.",
+ "+ Record service":"+ Registrar servicio",
+ "Service":"Servicio",
+ "Type":"Tipo",
+ "Provider":"Proveedor",
+ "Done":"Completado",
+ "Invoice":"Factura",
+ "Record AMS service":"Registrar servicio AMS",
+ "Completed?":"¿Completado?",
+ "Completion time":"Hora de finalización",
+ "Invoice reference":"Referencia de factura",
+ "Save service":"Guardar servicio",
+ "Pushback":"Remolque (pushback)",
+ "Aircraft cleaning":"Limpieza de aeronave",
+ "Lavatory service":"Servicio de lavabos",
+ "Water service":"Servicio de agua",
+ "De-icing":"Descongelamiento",
+ "Enter the completion time for a completed service.":"Ingrese la hora de finalización de un servicio completado.",
+ "AMS service recorded.":"Servicio AMS registrado.",
+ "Reports & documentation":"Reportes y documentación",
+ "Templates modeled on WFS form structure. Demonstration only, not official forms.":"Plantillas basadas en la estructura de formularios WFS. Solo demostración, no son formularios oficiales.",
+ "Operational summary":"Resumen operativo",
+ "Tickets, timing, cargo counts and approvals":"Tickets, horarios, conteo de carga y aprobaciones",
+ "Tickets by date":"Tickets por fecha",
+ "Pallet counts":"Conteo de paletas",
+ "Bulk kg":"Kg a granel",
+ "Crew participation":"Participación del personal",
+ "Preview summary":"Vista previa del resumen",
+ "Payroll & AMS reconciliation":"Conciliación de nómina y AMS",
+ "Airline revenue, compensation and AMS expenses are kept separate":"Ingresos de aerolíneas, compensaciones y gastos AMS se mantienen separados",
+ "Hourly summary":"Resumen por hora",
+ "AMS records":"Registros AMS",
+ "Payroll summary is not connected to payroll in this demo.":"El resumen de nómina no está conectado a nómina en esta demo.",
+ "Incident report":"Reporte de incidente",
+ "Statement covering involvement, event, witnesses and sign-off":"Declaración sobre participación, evento, testigos y firma",
+ "Open incident report":"Abrir reporte de incidente",
+ "Employee corrective action":"Acción correctiva de empleado",
+ "Attendance, safety, policy, performance or conduct discussions":"Conversaciones sobre asistencia, seguridad, políticas, desempeño o conducta",
+ "Open corrective action":"Abrir acción correctiva",
+ "Incident report · demo template":"Reporte de incidente · plantilla demo",
+ "Use fictional information only.":"Use solo información ficticia.",
+ "Employee":"Empleado",
+ "Event":"Evento",
+ "Sign-off":"Firma",
+ "Employee ID (fictional)":"ID de empleado (ficticio)",
+ "Employee name (fictional)":"Nombre del empleado (ficticio)",
+ "Job title":"Cargo",
+ "Line of business":"Línea de negocio",
+ "Station":"Estación",
+ "Manager receiving statement":"Supervisor que recibe la declaración",
+ "Incident date":"Fecha del incidente",
+ "Time (approximate)":"Hora (aproximada)",
+ "Involvement":"Participación",
+ "Incident type":"Tipo de incidente",
+ "Equipment ID (if any)":"ID de equipo (si aplica)",
+ "Location":"Ubicación",
+ "Who was involved?":"¿Quiénes estuvieron involucrados?",
+ "What happened?":"¿Qué ocurrió?",
+ "Witnesses (name and position)":"Testigos (nombre y cargo)",
+ "Employee acknowledgement":"Acuse de recibo del empleado",
+ "Employee sign-off date":"Fecha de firma del empleado",
+ "Manager acknowledgement":"Acuse de recibo del supervisor",
+ "Manager sign-off date":"Fecha de firma del supervisor",
+ "Involved employee":"Empleado involucrado",
+ "Witness":"Testigo",
+ "Leader":"Líder",
+ "Safety incident":"Incidente de seguridad",
+ "Property / equipment damage":"Daño a propiedad / equipo",
+ "HR incident (policy / rule)":"Incidente de RR. HH. (política / norma)",
+ "Other":"Otro",
+ "Save report":"Guardar reporte",
+ "Print / PDF":"Imprimir / PDF",
+ "Demo employee":"Empleado demo",
+ "Demo supervisor":"Supervisor demo",
+ "Demo station":"Estación demo",
+ "Demo work area":"Área de trabajo demo",
+ "Demo equipment ID":"ID de equipo demo",
+ "e.g. Ramp agent":"ej. Agente de rampa",
+ "e.g. Cargo":"ej. Carga",
+ "e.g. around 14:30":"ej. alrededor de las 14:30",
+ "Demo acknowledgement":"Acuse demo",
+ "Demo manager":"Gerente demo",
+ "Sequence of events and relevant circumstances":"Secuencia de eventos y circunstancias relevantes",
+ "Incident Report":"Reporte de incidente",
+ "Employee Corrective Action Report":"Reporte de acción correctiva de empleado",
+ "saved. Admins can review it in the console.":"guardado. Los administradores pueden revisarlo en la consola.",
+ "Enter report information before saving.":"Ingrese información del reporte antes de guardar.",
+ "Enter information before printing.":"Ingrese información antes de imprimir.",
+ "Employee corrective action · demo template":"Acción correctiva de empleado · plantilla demo",
+ "Use fictional information only. This template does not make disciplinary decisions.":"Use solo información ficticia. Esta plantilla no toma decisiones disciplinarias.",
+ "Infraction category":"Categoría de infracción",
+ "Description & plan":"Descripción y plan",
+ "Acknowledgement":"Acuse de recibo",
+ "Attendance / tardiness":"Asistencia / puntualidad",
+ "Safety":"Seguridad",
+ "Policy violation":"Violación de política",
+ "Performance":"Desempeño",
+ "Conflict of interest":"Conflicto de interés",
+ "Conduct / behavior":"Conducta / comportamiento",
+ "Incident / performance description":"Descripción del incidente / desempeño",
+ "5 Whys / contributing factors":"5 porqués / factores contribuyentes",
+ "Next steps / action plan":"Próximos pasos / plan de acción",
+ "Action taken":"Acción tomada",
+ "Previous documented action":"Acción documentada previa",
+ "Type and date, or none":"Tipo y fecha, o ninguno",
+ "Union representative (if applicable)":"Representante sindical (si aplica)",
+ "Distribution":"Distribución",
+ "Manager":"Supervisor",
+ "Manager signature":"Firma del supervisor",
+ "Documented verbal discussion":"Conversación verbal documentada",
+ "First warning":"Primera advertencia",
+ "Final warning":"Advertencia final",
+ "Termination":"Terminación",
+ "Personally handed to employee":"Entregado personalmente al empleado",
+ "Employee declined to accept":"El empleado se negó a firmar",
+ "Sent via employee email after discussion":"Enviado por correo electrónico al empleado tras la conversación",
+ "Administrator console":"Consola del administrador",
+ "Restricted view. Figures are calculated from demo records in this browser.":"Vista restringida. Las cifras se calculan a partir de registros demo de este navegador.",
+ "Reset demo data":"Restablecer datos demo",
+ "Access boundary: MODs and Supervisors do not see this page. Approval is not proof of payment.":"Límite de acceso: los MOD y supervisores no ven esta página. La aprobación no es prueba de pago.",
+ "Pending authorization":"Pendiente de autorización",
+ "Total exposure":"Exposición total",
+ "Tickets":"Tickets",
+ "Approved + pending":"Aprobados + pendientes",
+ "approved":"aprobados",
+ "pending":"pendientes",
+ "Supplemental ledger":"Libro de suplementarios",
+ "Requested, authorized and paid amounts should be separated in production.":"En producción, los montos solicitados, autorizados y pagados deben separarse.",
+ "Amount":"Monto",
+ "Basis":"Base",
+ "Storage design":"Diseño de almacenamiento",
+ "Proposed production locations":"Ubicaciones propuestas para producción",
+ "Data":"Datos",
+ "Location":"Ubicación",
+ "Access":"Acceso",
+ "Flights & tickets":"Vuelos y tickets",
+ "Operational tables":"Tablas operativas",
+ "MOD, Supervisor, Admin":"MOD, Supervisor, Admin",
+ "Roster snapshots":"Copias del personal",
+ "Restricted schedule tables":"Tablas de horario restringidas",
+ "Authorized ops, Admin":"Operaciones autorizadas, Admin",
+ "Supplemental pay":"Pago suplementario",
+ "Restricted pay tables":"Tablas de pago restringidas",
+ "MOD workflow; Admin / Payroll":"Flujo MOD; Admin / Nómina",
+ "Incident & corrective":"Incidentes y correctivas",
+ "HR-approved repository":"Repositorio aprobado por RR. HH.",
+ "HR-authorized only":"Solo autorizado por RR. HH.",
+ "This prototype stores records in this browser only. No server, payroll, or WFS system is connected.":"Este prototipo guarda registros solo en este navegador. No está conectado a ningún servidor, nómina ni sistema de WFS.",
+ "Completed reports":"Reportes completados",
+ "Incident and corrective-action reports saved in this browser.":"Reportes de incidentes y acciones correctivas guardados en este navegador.",
+ "Search ID, type, or content":"Buscar ID, tipo o contenido",
+ "Clear filters":"Limpiar filtros",
+ "of":"de",
+ "reports":"reportes",
+ "No completed reports saved in this browser yet.":"Aún no hay reportes completados guardados en este navegador.",
+ "No reports match these filters.":"Ningún reporte coincide con estos filtros.",
+ "Open":"Abrir",
+ "Print":"Imprimir",
+ "Close":"Cerrar",
+ "Admin review checklist":"Lista de revisión del admin",
+ "Supplemental totals vs payroll":"Totales suplementarios vs nómina",
+ "Pending MOD approvals":"Aprobaciones MOD pendientes",
+ "Duplicate tickets":"Tickets duplicados",
+ "Offline sync exceptions":"Excepciones de sincronización",
+ "AMS invoice matching":"Conciliación de facturas AMS",
+ "User access review":"Revisión de acceso de usuarios",
+ "Reset flights, supplemental and AMS records to sample data? Saved reports are kept.":"¿Restablecer vuelos, suplementarios y registros AMS a datos de ejemplo? Los reportes guardados se conservan.",
+ "Demo data reset.":"Datos demo restablecidos.",
+ "Enter actual hours worked.":"Ingrese las horas trabajadas reales.",
+ "Authorized paid hours must be at least 4.":"Las horas pagadas autorizadas deben ser al menos 4.",
+ "Employee not found (use DEMO-101 to DEMO-104).":"Empleado no encontrado (use DEMO-101 a DEMO-104).",
+ "is on leave and cannot be called in.":"está de licencia y no puede ser llamado.",
+ "Supplemental saved. Awaiting MOD approval.":"Suplementario guardado. Pendiente de aprobación MOD.",
+ "Complete the flight details before printing.":"Complete los datos del vuelo antes de imprimir.",
+ "Allow pop-ups to create the PDF.":"Permita ventanas emergentes para crear el PDF.",
+ "Allow pop-ups to print this.":"Permita ventanas emergentes para imprimir.",
+ "Operational ticket":"Ticket operativo",
+ "Loading / unloading record":"Registro de carga / descarga",
+ "Operational summary ·":"Resumen operativo ·",
+ "Sample day summary":"Resumen del día de muestra",
+ "Concept demonstration only. Production workflows require WFS operational, HR, Legal, Security, and IT review.":"Solo demostración conceptual. Los flujos de producción requieren revisión de operaciones, RR. HH., Legal, Seguridad e IT de WFS.",
+ "DEMO ONLY · FICTIONAL DATA · NOT AN OFFICIAL WFS FORM":"SOLO DEMO · DATOS FICTICIOS · NO ES UN FORMULARIO OFICIAL DE WFS",
+ "Signature / date":"Firma / fecha",
+ "Generated from the WFS Operations prototype":"Generado desde el prototipo de Operaciones WFS",
+ "Remove":"Quitar",
+ "Enter the flight number and start time":"Ingrese número de vuelo y hora de inicio",
+ "Saved reports":"Reportes guardados",
+ "Export":"Exportar",
+ "Clear form":"Limpiar formulario",
+ "Light":"Claro",
+ "Dark":"Oscuro",
+ "Skip":"Omitir",
+ "Print / PDF.":"Imprimir / PDF.",
+ "Employees":"Empleados",
+ "Language":"Idioma",
+ "Español":"Español",
+ "English":"English",
+ "Employee ID.":"ID de empleado.",
+ "Dark mode.":"Modo oscuro.",
+ "Operation finish time":"Hora de fin de operación",
+ "is not on the demo roster":"no está en la lista demo",
+ "Signed in as ":"Sesión iniciada como ",
+ "PDFs open in your browser's print dialog. Choose “Save as PDF.” Nothing is uploaded.":"Los PDF se abren en el diálogo de impresión del navegador. Elija “Guardar como PDF”. No se sube nada.",
+ "Demo only · fictional data":"Demo · datos ficticios",
+ "Login":"Inicio de sesión",
+ "Other ":"Otros ",
+ "Clear form.":"Limpiar formulario.",
+ "Scheduled.":"Programados.",
+ "Shift.":"Turno.",
+ "Present.":"Presentes."
+};
+Object.assign(ES,{"Supervisor":"Supervisor","session":"sesión","MOD":"MOD","Voided":"Anulado","Void":"Anular","voided.":"anulado.",
+ "Reason for void (required)":"Motivo de anulación (obligatorio)","A reason is required to void a record.":"Se requiere un motivo para anular un registro.",
+ "You cannot approve a record you created. A different supervisor must approve it.":"No puede aprobar un registro que usted creó. Debe aprobarlo otro supervisor.",
+ "Audit trail":"Registro de auditoría","Every sign-in, create, approval, finish, void and report save.":"Cada inicio de sesión, alta, aprobación, finalización, anulación y reporte guardado.",
+ "User":"Usuario","Action":"Acción","Record":"Registro","No activity yet.":"Sin actividad todavía.","Signed out":"Sesión cerrada",
+ "Signed in":"Inicio de sesión","Signed out ":"Cierre de sesión","Created ticket":"Ticket creado","Approved ticket":"Ticket aprobado","Finished ticket":"Ticket finalizado",
+ "Voided ticket":"Ticket anulado","Created supplemental":"Suplementario creado","Approved supplemental":"Suplementario aprobado",
+ "Recorded AMS service":"Servicio AMS registrado","Saved report":"Reporte guardado","Reset demo data":"Datos demo restablecidos"});
+const t=s=>(LANG==='es'&&ES[s]!==undefined)?ES[s]:s;
+// Translate static page text (keeps the original English so it can switch back)
+function translateDOM(){
+ const w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT);const nodes=[];let n;
+ while((n=w.nextNode()))nodes.push(n);
+ for(const node of nodes){
+  const par=node.parentNode;if(!par||/^(SCRIPT|STYLE)$/.test(par.nodeName))continue;
+  const raw=node.nodeValue,tr=raw.trim();if(!tr)continue;
+  if(node.__o===undefined)node.__o=tr;
+  const out=(LANG==='es'&&ES[node.__o]!==undefined)?ES[node.__o]:node.__o;
+  if(out!==tr)node.nodeValue=raw.replace(tr,out);
+ }
+ document.querySelectorAll('[placeholder]').forEach(el=>{
+  if(el.__p===undefined)el.__p=el.placeholder;
+  el.placeholder=(LANG==='es'&&ES[el.__p]!==undefined)?ES[el.__p]:el.__p;
+ });
+ document.documentElement.lang=LANG;
+}
+
+/* ============ data ============ */
+const RATE=22.53;
+const ROSTER={
+ 'DEMO-101':{name:'Alex Morgan',cat:'Pre-work',ok:true,group:'A'},
+ 'DEMO-102':{name:'Jordan Lee',cat:'Hourly',ok:true,group:'A'},
+ 'DEMO-103':{name:'Taylor Reed',cat:'Pre-work',ok:false,group:'A'},
+ 'DEMO-104':{name:'Casey Brooks',cat:'Hourly',ok:true,group:'B'}};
+const SEED=()=>({
+ flights:[
+  {id:'FL-26012',date:'11/14/2026',airline:'Sample Logistics Air',no:'SL112',call:'SAMPLE112',op:'Loading',start:'06:10',end:'07:20',status:'Approved'},
+  {id:'FL-26013',date:'11/14/2026',airline:'Northstar Cargo',no:'NX702',call:'NSTAR702',op:'Unloading',start:'07:00',end:'07:50',status:'Approved'},
+  {id:'FL-26014',date:'11/14/2026',airline:'Demo Air',no:'DA204',call:'DEMO204',op:'Unloading',start:'08:10',end:'09:25',status:'Approved'},
+  {id:'FL-26015',date:'11/14/2026',airline:'Demo Air',no:'DA518',call:'DEMO518',op:'Loading',start:'09:00',end:'',status:'In progress'},
+  {id:'FL-26016',date:'11/14/2026',airline:'Northstar Cargo',no:'NX731',call:'NSTAR731',op:'Loading',start:'10:20',end:'',status:'Draft'}],
+ supp:[{id:'SUP-0061',eid:'DEMO-104',actual:0.67,paid:4,status:'Approved'},{id:'SUP-0062',eid:'DEMO-101',actual:2.5,paid:6,status:'Pending MOD'}],
+ ams:[
+  {id:'AMS-3001',flight:'DA204',svc:'Pushback',prov:'Demo Ground Services',done:'Yes',time:'09:42',inv:'DEMO-INV-01'},
+  {id:'AMS-3002',flight:'DA518',svc:'Aircraft cleaning',prov:'Demo Ground Services',done:'Yes',time:'10:05',inv:'DEMO-INV-02'},
+  {id:'AMS-3003',flight:'NX731',svc:'Pushback',prov:'Demo Ground Services',done:'Pending',time:'—',inv:'—'}]
+});
+let DB;try{DB=JSON.parse(localStorage.getItem('wfs-v7-data'))}catch(e){}
+if(!DB||!DB.flights)DB=SEED();
+const save=()=>{try{localStorage.setItem('wfs-v7-data',JSON.stringify(DB))}catch(e){toast('Could not save in browser storage.')}};
+const $=id=>document.getElementById(id);
+function logAdd(action,ref){DB.log=DB.log||[];DB.log.unshift({at:new Date().toISOString(),user:curLabel(),action,ref:ref||''});DB.log=DB.log.slice(0,300);save()}
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'$'+n.toFixed(2);
+const amt=s=>Math.round(s.paid*RATE*100)/100;
+const PILL={'Voided':'red','Approved':'green','Yes':'green','Draft':'blue','In progress':'amber','Awaiting sign-off':'amber','Pending MOD':'amber','Pending':'amber'};
+const pendPill=()=>`<span class="pill amber">${esc(t('Pending sync'))}</span> `;
+const pill=s=>`<span class="pill ${PILL[s]||''}">${esc(t(s))}</span>`;
+const todayISO=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const who=eid=>ROSTER[eid]?`${esc(ROSTER[eid].name)} <span class="muted">(${esc(eid)})</span>`:esc(eid);
+const initials=n=>n.split(' ').map(x=>x[0]).join('');
+const dateLoc=()=>LANG==='es'?'es-US':'en-US';
+
+/* ============ auth & nav ============ */
+let role='ops',pending='ops',CUR='dashboard',signedIn=false;
+const ACCOUNTS={mod:{pw:'MOD2026',role:'ops',label:'MOD'},sup:{pw:'SUP2026',role:'ops',label:'Supervisor'},admin:{pw:'ADMIN2026',role:'admin',label:'Administrator'}};
+// Access levels: 'ops' (MOD and Supervisor) = same access. 'admin' = everything, including the Admin console.
+const ACCESS={ops:['dashboard','flights','newticket','employees','supplemental','ams','reports'],admin:['dashboard','flights','newticket','employees','supplemental','ams','reports','admin']};
+const canAccess=id=>ACCESS[role]?.includes(id);
+let user=null;
+const curLabel=()=>user?user.label:'';
+function roleLabel(){return user?t(user.label):''}
+function refreshChrome(){
+ if(!signedIn){$('who').textContent=t('Signed out');return}
+ $('roleChip').textContent=roleLabel();
+ $('who').textContent=t(user.label)+' · '+t('session');
+}
+
+function fillCreds(name){const a=ACCOUNTS[name];$('lErr').textContent='';$('lUser').value=name;$('lPass').value=a.pw}
+function signIn(){try{signInInner()}catch(e){$('lErr').textContent='Sign-in error: '+e.message;console.error(e)}}
+function signInInner(){
+ const u=$('lUser').value.trim().toLowerCase(),p=$('lPass').value.trim(),a=ACCOUNTS[u];
+ if(!a||a.pw!==p){$('lErr').textContent=t('The demo username or password is incorrect.');return}
+ user=a;role=a.role;signedIn=true;document.body.classList.toggle('role-admin',role==='admin');
+ $('login').classList.add('hide');$('app').classList.remove('locked');
+ refreshChrome();
+ logAdd('Signed in','');
+ go('dashboard');
+ toast(t('Signed in as')+' '+roleLabel());
+}
+function signOut(){if(signedIn)logAdd('Signed out','');signedIn=false;document.body.classList.remove('role-admin');$('app').classList.add('locked');$('login').classList.remove('hide');$('lErr').textContent='';$('lPass').value='';refreshChrome()}
+const TITLES={dashboard:['Workspace','Dashboard'],flights:['Operations','Flight operations'],newticket:['Operations','New ticket'],employees:['Crew & pay','Roster'],supplemental:['Crew & pay','Supplemental tickets'],ams:['Crew & pay','AMS services'],reports:['Documents','Reports'],admin:['Restricted','Administrator console']};
+function go(id){
+ if(!canAccess(id)){toast(t('Administrator access is required.'));return}
+ CUR=id;
+ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===id));
+ document.querySelectorAll('nav button[data-page]').forEach(b=>{if(b.dataset.page===id)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});
+ $('crumb').textContent=t(TITLES[id][0]);$('ttl').textContent=t(TITLES[id][1]);
+ if(id==='admin')renderSaved();
+ window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button[data-page]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.page)));
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.go)));
+
+/* ============ theme, language, toast ============ */
+function applyTheme(th){document.body.dataset.theme=th;$('themeBtn').innerHTML=th==='dark'?"<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' aria-hidden='true'><circle cx='12' cy='12' r='4'/><path d='M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4'/></svg>":"<svg width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z'/></svg>";$('themeBtn').style.padding='8px 10px';$('themeBtn').setAttribute('aria-label',th==='dark'?t('Light mode'):t('Dark mode'));$('themeBtn').title=$('themeBtn').getAttribute('aria-label');$('themeBtn').setAttribute('aria-pressed',th==='dark')}
+try{applyTheme(localStorage.getItem('wfs-v7-theme')||'light')}catch(e){applyTheme('light')}
+$('themeBtn').addEventListener('click',()=>{const n=document.body.dataset.theme==='dark'?'light':'dark';applyTheme(n);try{localStorage.setItem('wfs-v7-theme',n)}catch(e){}});
+function toggleLang(){
+ LANG=LANG==='es'?'en':'es';
+ try{localStorage.setItem('wfs-v7-lang',LANG)}catch(e){}
+ applyLang();
+}
+function applyLang(){
+ translateDOM();
+ document.querySelectorAll('.langBtn').forEach(b=>b.textContent=LANG==='es'?'English':'Español');
+ applyTheme(document.body.dataset.theme||'light');
+ refreshChrome();
+ go(CUR);
+ render();
+}
+let tt;
+function toast(m){const el=$('toast');el.textContent=t(m);el.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('on'),2800)}
+function toggle(id){const el=$(id);el.classList.toggle('on');if(el.classList.contains('on'))el.scrollIntoView({behavior:'smooth',block:'start'})}
+
+/* ============ render ============ */
+let filter='all';
+function actionBtn(f){
+ let h='';
+ if(f.status==='Awaiting sign-off')h+=`<button class="btn sm" onclick="approveFlight('${f.id}')">${t('Approve')}</button> `;
+ else if(f.status!=='Approved'&&f.status!=='Voided')h+=`<button class="btn sm" onclick="finishFlight('${f.id}')">${t('Finish')}</button> `;
+ if(f.status!=='Voided')h+=`<button class="btn sm danger" onclick="voidFlight('${f.id}')">${t('Void')}</button>`;
+ return h;
+}
+function render(){
+ const F=DB.flights,open=F.filter(f=>f.status!=='Approved'&&f.status!=='Voided'),S=DB.supp,pend=S.filter(s=>s.status!=='Approved');
+ $('navFlights').textContent=open.length;$('navSupp').textContent=pend.length;$('navAms').textContent=DB.ams.length;
+ $('sOpen').textContent=open.length;
+ $('sOpenN').textContent=open.filter(f=>f.op==='Loading').length+' '+t('loading')+' · '+open.filter(f=>f.op==='Unloading').length+' '+t('unloading');
+ $('sDone').textContent=F.filter(f=>f.status==='Approved').length;
+ $('sSupp').textContent=S.length;$('sSuppN').textContent=pend.length+' '+t('awaiting approval');
+ $('sAms').textContent=DB.ams.length;$('sPend').textContent=pend.length;
+ $('boardBody').innerHTML=open.length?open.map(f=>`<tr><td class="mono">${esc(f.no)}</td><td>${esc(f.airline)}</td><td>${t(f.op)}</td><td>${pill(f.status)}</td></tr>`).join('')
+   :`<tr><td colspan="4" class="empty">${t('No open operations.')}</td></tr>`;
+ const list=F.filter(f=>filter==='all'||(filter==='open'?(f.status!=='Approved'&&f.status!=='Voided'):f.status==='Approved'));
+ $('flightBody').innerHTML=list.length?list.map(f=>`<tr><td class="mono">${f.ticketNo||f.id}</td><td>${esc(f.date)}</td><td><b>${esc(f.no)}</b><div class="small muted">${esc(f.airline)}</div></td><td class="mono">${esc(f.call||'—')}</td><td>${t(f.op)}</td><td class="mono">${f.start} – ${f.end||'—'}</td><td>${f.pendingSync?pendPill():''}${pill(f.status)} ${actionBtn(f)}</td></tr>`).join('')
+   :`<tr><td colspan="7" class="empty">${t('No operations match this filter.')}</td></tr>`;
+ $('rosterGrid').innerHTML=Object.entries(ROSTER).map(([id,r])=>`<div class="rcard"><div class="person"><div class="av">${initials(r.name)}</div><div><b>${esc(r.name)}</b><small>${id} · ${t('Group')} ${r.group}</small></div></div><div class="actions" style="margin:0"><span class="pill ${r.ok?'green':'amber'}">${r.ok?t('Present'):t('On leave')}</span><span class="tag">${t(r.cat)}</span></div><div class="small muted">${r.cat==='Pre-work'?t('List on eligible operation tickets'):t('Regular timekeeping. Supplemental ticket if called out of schedule')}${r.ok?'':' · '+t('not assigned while on leave')}</div></div>`).join('');
+ $('suppBody').innerHTML=S.length?S.map(s=>`<tr><td class="mono">${s.id}</td><td>${who(s.eid)}</td><td>${t(ROSTER[s.eid]?.cat||'—')}</td><td class="mono">${s.actual.toFixed(2)}</td><td class="mono">${s.paid}</td><td class="mono">${money(amt(s))}</td><td>${s.pendingSync?pendPill():''}${pill(s.status)} ${s.status==='Approved'?'':`<button class="btn sm" onclick="approveSupp('${s.id}')">${t('Approve')}</button>`}</td></tr>`).join('')
+   :`<tr><td colspan="7" class="empty">${t('No supplemental tickets.')}</td></tr>`;
+ $('amsBody').innerHTML=DB.ams.map(a=>`<tr><td class="mono">${a.id}</td><td class="mono">${esc(a.flight)}</td><td>${t(a.svc)}</td><td>${esc(a.prov)}</td><td>${pill(a.done)}</td><td class="mono">${a.time}</td><td class="mono">${esc(a.inv)}</td></tr>`).join('');
+ $('aFl').innerHTML=F.map(f=>`<option>${esc(f.no)}</option>`).join('');
+ $('rosterIds').innerHTML=Object.keys(ROSTER).map(k=>`<option value="${k}">`).join('');
+ const sum=a=>a.reduce((x,s)=>x+amt(s),0),ap=S.filter(s=>s.status==='Approved');
+ $('aApp').textContent=money(sum(ap));$('aPen').textContent=money(sum(pend));$('aTot').textContent=money(sum(S));
+ $('aTk').textContent=S.length;$('aTkN').textContent=ap.length+' '+t('approved')+' · '+pend.length+' '+t('pending');
+ $('ledgerBody').innerHTML=S.map(s=>`<tr><td class="mono">${s.id}</td><td>${who(s.eid)}</td><td>${pill(s.status)}</td><td class="mono">${s.paid} × $${RATE}</td><td class="mono">${money(amt(s))}</td></tr>`).join('');
+ Object.assign(ES,{'Payable today (approved)':'Pagable hoy (aprobado)','Approved supplemental tickets dated today':'Tickets suplementarios aprobados con fecha de hoy'});
+ $('ex4').textContent=money(S.filter(s=>s.status==='Approved'&&(s.date||todayISO())===todayISO()).reduce((x,s)=>x+amt(s),0));
+ $('logBody').innerHTML=(DB.log||[]).slice(0,60).map(l=>`<tr><td class="mono">${new Date(l.at).toLocaleString(dateLoc())}</td><td>${esc(t(l.user))}</td><td>${esc(t(l.action))}</td><td class="mono">${esc(l.ref)}</td></tr>`).join('')||`<tr><td colspan="4" class="empty">${t('No activity yet.')}</td></tr>`;
+ translateDOM();labelTables();
+}
+function labelTables(){document.querySelectorAll('table').forEach(tb=>{
+ const hs=[...tb.querySelectorAll('thead th')].map(h=>h.textContent.trim());
+ tb.querySelectorAll('tbody tr').forEach(tr=>[...tr.children].forEach((td,i)=>{if(hs[i]&&!td.hasAttribute('colspan'))td.setAttribute('data-label',hs[i])}))})}
+function approveFlight(id){const f=DB.flights.find(x=>x.id===id);
+ if(!navigator.onLine)return toast(t('This needs a connection. Try again when online.'));
+ if(f.by&&f.by===curLabel()&&role!=='admin')return toast(t('You cannot approve a record you created. A different supervisor must approve it.'));
+ f.status='Approved';f.approvedBy=curLabel();logAdd('Approved ticket',f.id+' '+f.no);render();toast(id+' '+t('approved.'))}
+function approveSupp(id){const s=DB.supp.find(x=>x.id===id);
+ if(!navigator.onLine)return toast(t('This needs a connection. Try again when online.'));
+ if(s.by&&s.by===curLabel()&&user.label!=='MOD')return toast(t('You cannot approve a record you created. A different supervisor must approve it.'));
+ s.status='Approved';s.approvedBy=curLabel();logAdd('Approved supplemental',id);render();toast(id+' '+t('approved.'))}
+function finishFlight(id){
+ const f=DB.flights.find(x=>x.id===id),val=prompt(t('Finish time (HH:MM, 24-hour)'),f.end||'');if(!val)return;
+ if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(val)||val<=f.start)return toast(t('Enter a time later than the start')+' ('+f.start+').');
+ f.end=val;f.status='Awaiting sign-off';f.pendingSync=!navigator.onLine;logAdd('Finished ticket',id);render();toast(id+' '+t('finished. Awaiting sign-off.'));
+}
+function voidFlight(id){const f=DB.flights.find(x=>x.id===id);if(!f||f.status==='Voided')return;
+ if(!navigator.onLine)return toast(t('This needs a connection. Try again when online.'));
+ const why=prompt(t('Reason for void (required)'));if(!why||!why.trim())return toast(t('A reason is required to void a record.'));
+ f.status='Voided';f.voidReason=why.trim();logAdd('Voided ticket',f.id+' — '+why.trim());render();toast(id+' '+t('voided.'))}
+function resetDemo(){if(!confirm(t('Reset flights, supplemental and AMS records to sample data? Saved reports are kept.')))return;const L=DB.log||[];DB=SEED();DB.log=L;logAdd('Reset demo data','');render();toast('Demo data reset.')}
+document.querySelectorAll('[data-f]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.f;document.querySelectorAll('[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));render()}));
+
+/* ============ forms: ticket ============ */
+function toggleCargo(){const load=$('tOp').value==='Loading';
+ document.querySelectorAll('[data-cargo="load"]').forEach(e=>e.style.display=load?'none':'');
+ document.querySelectorAll('[data-cargo="off"]').forEach(e=>e.style.display=load?'':'none')}
+toggleCargo();$('tDate').value=todayISO();$('sDate').value=todayISO();
+$('ticketForm').addEventListener('submit',e=>{e.preventDefault();
+ const v=id=>$(id).value.trim();
+ if(!v('tAir')||!v('tNo')||!v('tStart'))return toast('Complete airline, flight number and start time.');
+ if(v('tEnd')&&v('tEnd')<=v('tStart'))return toast('Finish time must be later than start time.');
+ const ids=preworkCrew();
+ for(const id of ids){const r=ROSTER[id];
+  if(!r)return toast(id+' '+t('is not on the demo roster.'));
+  if(r.cat==='Hourly')return toast(r.name+' '+t('is hourly: keep off standard tickets (use a supplemental ticket).'));
+  if(!r.ok)return toast(r.name+' '+t('is on leave and cannot be assigned.'))}
+ const [y,m,d]=(v('tDate')||todayISO()).split('-');
+ const n=Math.max(26011,...DB.flights.map(f=>+f.id.slice(3)))+1;
+ const op=$('tOp').value,load=op==='Loading';
+ DB.flights.push({by:curLabel(),pendingSync:!navigator.onLine,id:'FL-'+n,date:`${m}/${d}/${y}`,airline:$('tAir').value,no:v('tNo').toUpperCase(),call:v('tCall').toUpperCase(),op,start:v('tStart'),end:v('tEnd'),status:v('tEnd')?'Awaiting sign-off':'In progress',crew:ids,
+  x:{block:v('tBlock'),pl:load?v('tPl'):'',po:load?'':v('tPo'),bulk:v('tBulk'),lm:v('tLm'),notes:v('tNotes')}});
+ logAdd('Created ticket','FL-'+n+' '+DB.flights[DB.flights.length-1].no);render();e.target.reset();$('tDate').value=todayISO();toggleCargo();go('flights');
+ toast('FL-'+n+' '+t('saved.'));
+});
+
+/* ============ forms: supplemental, AMS ============ */
+$('sEid').addEventListener('input',()=>{const r=ROSTER[$('sEid').value.trim().toUpperCase()];$('sCat').value=r?t(r.cat)+(r.ok?'':' ('+t('On leave')+')'):''});
+$('suppDemoForm').addEventListener('submit',e=>{e.preventDefault();
+ const eid=$('sEid').value.trim().toUpperCase(),r=ROSTER[eid],act=parseFloat($('sAct').value),paid=parseFloat($('sPaid').value);
+ if(!r)return toast('Employee not found (use DEMO-101 to DEMO-104).');
+ if(!r.ok)return toast(r.name+' '+t('is on leave and cannot be called in.'));
+ if(!(act>0))return toast('Enter actual hours worked.');
+ if(!(paid>=4))return toast('Authorized paid hours must be at least 4.');
+ const n=Math.max(61,...DB.supp.map(s=>+s.id.slice(4)))+1;
+ DB.supp.push({by:curLabel(),pendingSync:!navigator.onLine,id:'SUP-'+String(n).padStart(4,'0'),eid,actual:act,paid,status:'Pending MOD'});logAdd('Created supplemental',DB.supp[DB.supp.length-1].id);
+ save();render();e.target.reset();$('sDate').value=todayISO();$('sPaid').value=4;$('sCat').value='';
+ $('suppForm').classList.remove('on');toast('Supplemental saved. Awaiting MOD approval.');
+});
+$('amsFormEl').addEventListener('submit',e=>{e.preventDefault();
+ if($('aDone').value==='Yes'&&!$('aTime').value)return toast('Enter the completion time for a completed service.');
+ const n=Math.max(3003,...DB.ams.map(a=>+a.id.slice(4)))+1;
+ DB.ams.push({pendingSync:!navigator.onLine,id:'AMS-'+n,flight:$('aFl').value,svc:$('aSvc').value,prov:$('aProv').value.trim()||'—',done:$('aDone').value,time:$('aTime').value||'—',inv:$('aInv').value.trim()||'—'});
+ save();render();e.target.reset();logAdd('Recorded AMS service','AMS-'+n);$('amsForm').classList.remove('on');toast('AMS service recorded.');
+});
+
+/* ============ export & print ============ */
+function exportCSV(){
+ const q=v=>{v=String(v??'');if(/^[=+\-@]/.test(v))v="'"+v;return '"'+v.replace(/"/g,'""')+'"'};
+ const h=['Flight ID','Date','Airline','Flight','Callsign','Operation','Start','Finish','Status'];
+ const rows=DB.flights.map(f=>[f.id,f.date,f.airline,f.no,f.call,f.op,f.start,f.end,f.status].map(q).join(','));
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([[h.map(q).join(','),...rows].join('\r\n')],{type:'text/csv'}));
+ a.download='wfs-demo-flights.csv';a.click();
+}
+const PRINT_CSS='body{font:14px/1.5 Arial,sans-serif;color:#15191f;margin:34px}h1{font-size:22px;margin:0 0 4px}.tag{display:inline-block;padding:5px 9px;background:#fff3d6;border:1px solid #f0d58a;border-radius:5px;font-size:11px;color:#5b4300}.meta{color:#6b717b;margin:10px 0 18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 28px}.f{border-bottom:1px solid #e2ded4;padding:8px 0;break-inside:avoid}.f b{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:#6b717b}.f div{white-space:pre-wrap;overflow-wrap:anywhere}.sig{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px}.line{border-bottom:1px solid #15191f;height:34px}.foot{margin-top:26px;color:#6b717b;font-size:10px}@media print{body{margin:16mm}}';
+function openPrint(title,body){
+ const w=window.open('','_blank','width=900,height=700');if(!w)return toast('Allow pop-ups to create the PDF.');
+ w.document.write(`<!doctype html><html lang="${LANG}"><head><meta charset="utf-8"><title>${esc(title)}</title><style>${PRINT_CSS}</style></head><body>${body}<script>window.onload=()=>print();<\/script></body></html>`);
+ w.document.close();
+}
+function fieldsFrom(form){
+ const out=[],checks=[];
+ form.querySelectorAll('input,select,textarea').forEach(c=>{
+  if(['button','submit','reset'].includes(c.type)||c.type==='search')return;
+  if(c.type==='checkbox'){if(c.checked){checks.push(c.labels&&c.labels[0]?c.labels[0].textContent.trim():c.value);checks.kind=c.closest('#ticketForm')?'ams':'infraction'}return}
+  if(c.closest('[data-cargo]')?.style.display==='none')return;
+  const l=(c.labels&&c.labels[0]?c.labels[0].textContent:'').replace(/\(optional\)|\(opcional\)|\(only if applicable\)|\(solo si aplica\)|\(if any\)/,'').trim()||'Field';
+  const v=c.tagName==='SELECT'?(c.options[c.selectedIndex]?.text||''):c.value.trim();
+  if(v)out.push({label:l,value:v});
+ });
+ if(checks.length)out.unshift({label:t(checks.kind==='ams'?'AMS services':'Infraction category'),value:checks.join(', ')});
+ return out;
+}
+const block=(fields,title,tag)=>`<h1>${esc(title)}</h1><div class="tag">${esc(t('DEMO ONLY · FICTIONAL DATA · NOT AN OFFICIAL WFS FORM'))}</div><div class="meta">${tag}</div><div class="grid">${fields.map(f=>`<div class="f"><b>${esc(f.label)}</b><div>${esc(f.value)}</div></div>`).join('')}</div><div class="sig"><div><div class="line"></div>${esc(t('Signature / date'))}</div><div><div class="line"></div>${esc(t('Signature / date'))}</div></div><div class="foot">${esc(t('Concept demonstration only. Production workflows require WFS operational, HR, Legal, Security, and IT review.'))}</div>`;
+function printForm(id,title){const f=fieldsFrom($(id));if(!f.length)return toast('Enter information before printing.');openPrint(t(title),block(f,t(title),t('Generated from the WFS Operations prototype')))}
+function printTicket(){const f=fieldsFrom($('ticketForm'));if(f.length<3)return toast('Complete the flight details before printing.');openPrint(t('Operational ticket'),block(f,t('Operational ticket'),t('Loading / unloading record')))}
+function printOps(){const rows=DB.flights.map(f=>({label:f.no+' · '+t(f.op),value:`${f.start}–${f.end||'—'} · ${t(f.status)}`}));openPrint(t('Operational summary'),block(rows,t('Operational summary'),t('Sample day summary')))}
+
+/* ============ report forms ============ */
+function getSaved(){try{return JSON.parse(localStorage.getItem('wfs-demo-completed-reports')||'[]')}catch(e){return[]}}
+function saveReport(form,type){
+ const f=fieldsFrom(form);if(!f.length){toast('Enter report information before saving.');return false}
+ const list=getSaved(),now=new Date();
+ list.unshift({id:'RPT-'+String(now.getTime()).slice(-8),type,at:now.toISOString(),fields:f});
+ try{localStorage.setItem('wfs-demo-completed-reports',JSON.stringify(list))}catch(e){toast('Could not save in browser storage.');return false}
+ logAdd('Saved report',type);form.reset();toast(t(type)+' '+t('saved. Admins can review it in the console.'));return true;
+}
+$('incDemoForm').addEventListener('submit',e=>{e.preventDefault();if(saveReport(e.target,'Incident Report'))toggle('incForm')});
+$('corDemoForm').addEventListener('submit',e=>{e.preventDefault();if(saveReport(e.target,'Employee Corrective Action Report'))toggle('corForm')});
+
+/* ============ admin: saved reports ============ */
+function clearFilters(){['rSearch','rFrom','rTo'].forEach(i=>$(i).value='');renderSaved()}
+function renderSaved(){
+ const all=getSaved(),q=$('rSearch').value.trim().toLowerCase(),from=$('rFrom').value,to=$('rTo').value;
+ const list=all.map((r,i)=>({r,i})).filter(({r})=>{
+  if(q&&![r.id,r.type,...r.fields.flatMap(f=>[f.label,f.value])].join(' ').toLowerCase().includes(q))return false;
+  const d=new Date(r.at);if(from&&d<new Date(from+'T00:00:00'))return false;if(to&&d>new Date(to+'T23:59:59'))return false;return true;
+ });
+ $('rCount').textContent=`${list.length} ${t('of')} ${all.length} ${t('reports')}`;
+ $('savedList').innerHTML=!all.length?`<div class="empty">${t('No completed reports saved in this browser yet.')}</div>`
+   :!list.length?`<div class="empty">${t('No reports match these filters.')}</div>`
+   :list.map(({r,i})=>`<div class="srow"><div><b>${esc(r.id)}</b> <span class="pill">${esc(t(r.type))}</span><small>${new Date(r.at).toLocaleString(dateLoc())}</small></div><div class="actions" style="margin:0"><button class="btn sm" onclick="openSaved(${i})">${t('Open')}</button><button class="btn sm" onclick="printSaved(${i})">${t('Print')}</button></div></div>`).join('');
+}
+function openSaved(i){
+ const r=getSaved()[i];if(!r)return;const d=$('savedDetail');
+ d.innerHTML=`<div class="actions" style="justify-content:space-between;margin:0 0 10px"><h2 style="margin:0;font-size:16px">${esc(t(r.type))} · ${esc(r.id)}</h2><button class="btn sm" onclick="$('savedDetail').classList.remove('on')">${t('Close')}</button></div>`
+  +r.fields.map(f=>`<div class="fld"><b>${esc(f.label)}</b><div>${esc(f.value)}</div></div>`).join('');
+ d.classList.add('on');d.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function printSaved(i){const r=getSaved()[i];if(!r)return;openPrint(t(r.type),block(r.fields,t(r.type),esc(r.id)+' · '+new Date(r.at).toLocaleString(dateLoc())))}
+
+/* ============ start ============ */
+translateDOM();
+refreshChrome();
+render();
+
+
+/* ============ inline finish and void (no pop-up boxes) ============ */
+Object.assign(ES,{"Confirm":"Confirmar","Enter the time the operation ended.":"Ingrese la hora en que terminó la operación."});
+let OP=null;
+function setOpNow(){const d=new Date();$('opTime').value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+Object.assign(ES,{"Now":"Ahora","Enter the finish time, or press Now.":"Ingrese la hora de fin o presione Ahora."});
+function openOp(mode,id){const f=DB.flights.find(x=>x.id===id);if(!f)return;OP={mode,id};$('opTitle').textContent=(mode==='finish'?t('Finish time'):t('Void'))+' · '+f.no;$('opSub').textContent=mode==='finish'?t('Enter the time the operation ended.'):t('A reason is required to void a record.');$('opTimeWrap').hidden=mode!=='finish';$('opReasonWrap').hidden=mode!=='void';$('opTime').value=f.end||'';$('opReason').value='';$('opOk').textContent=mode==='finish'?t('Finish'):t('Void');$('opDlg').classList.add('on');$('opDlg').scrollIntoView({behavior:'smooth',block:'center'});(mode==='finish'?$('opTime'):$('opReason')).focus()}
+function finishFlight(id){openOp('finish',id)}
+function voidFlight(id){openOp('void',id)}
+function closeOp(){OP=null;$('opDlg').classList.remove('on')}
+function confirmOp(){if(!OP)return;const f=DB.flights.find(x=>x.id===OP.id);if(!f)return closeOp();
+ if(OP.mode==='finish'){const val=$('opTime').value;if(!val)return toast(t('Enter the finish time, or press Now.'));if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(val)||val<=f.start)return toast(t('Enter a time later than the start')+' ('+f.start+').');f.end=val;f.status='Awaiting sign-off';f.pendingSync=!navigator.onLine;logAdd('Finished ticket',f.id);closeOp();render();toast(f.id+' '+t('finished. Awaiting sign-off.'))}
+ else{const why=$('opReason').value.trim();if(!why)return toast(t('A reason is required to void a record.'));if(!navigator.onLine)return toast(t('This needs a connection. Try again when online.'));f.status='Voided';f.voidReason=why;logAdd('Voided ticket',f.id+' — '+why);closeOp();render();toast(f.id+' '+t('voided.'))}}
+$('opOk').addEventListener('click',confirmOp);
+
+/* ============ supplemental: inline errors, accept 1.5 or 1:30 ============ */
+Object.assign(ES,{"Enter actual hours as 1.5 or 1:30.":"Ingrese las horas reales como 1.5 o 1:30."});
+function parseHours(v){v=String(v).trim();const m=v.match(/^(\d+):([0-5]\d)$/);if(m)return +m[1]+(+m[2])/60;if(/^\d+(\.\d+)?$/.test(v))return parseFloat(v);return NaN}
+(function(){const old=$('suppDemoForm');const nf=old.cloneNode(true);old.replaceWith(nf);
+$('sEid').addEventListener('input',()=>{const r=ROSTER[$('sEid').value.trim().toUpperCase()];$('sCat').value=r?t(r.cat)+(r.ok?'':' ('+t('On leave')+')'):''});
+nf.addEventListener('submit',e=>{e.preventDefault();$('sErr').textContent='';const eid=$('sEid').value.trim().toUpperCase(),r=ROSTER[eid],act=parseHours($('sAct').value),paid=parseFloat($('sPaid').value);const fail=m=>{$('sErr').textContent=m;toast(m)};
+if(!r)return fail(t('Employee not found (use DEMO-101 to DEMO-104).'));if(!r.ok)return fail(r.name+' '+t('is on leave and cannot be called in.'));if(!(act>0))return fail(t('Enter actual hours as 1.5 or 1:30.'));if(!(paid>=4))return fail(t('Authorized paid hours must be at least 4.'));
+const n=Math.max(61,...DB.supp.map(s=>+s.id.slice(4)))+1;const id='SUP-'+String(n).padStart(4,'0');DB.supp.push({by:curLabel(),pendingSync:!navigator.onLine,date:todayISO(),id,eid,actual:act,paid,status:'Pending MOD'});logAdd('Created supplemental',id);
+nf.reset();$('sDate').value=todayISO();$('sPaid').value=4;$('sCat').value='';$('suppForm').classList.remove('on');render();toast(t('Supplemental saved. Awaiting MOD approval.'))});
+})();
+
+/* ============ AMS services recorded with the new ticket ============ */
+Object.assign(ES,{'AMS services (optional)':'Servicios AMS (opcional)','AMS services performed on this flight':'Servicios AMS realizados en este vuelo','AMS provider':'Proveedor AMS','AMS invoice reference':'Referencia de factura AMS','AMS completion time (24-hour)':'Hora de finalización AMS (24 horas)','(leave blank if pending)':'(déjelo en blanco si está pendiente)','AMS services recorded with this ticket.':'Servicios AMS registrados con este ticket.','AMS services':'Servicios AMS'});
+function setAmsNow(){const d=new Date();$('tAmsTime').value=String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
+let amsSnap=null;
+document.addEventListener('submit',e=>{if(e.target.id!=='ticketForm'||EDIT)return;amsSnap={before:DB.flights.length,svcs:[...document.querySelectorAll('#amsChecks input:checked')].map(i=>i.value),prov:$('tAmsProv').value.trim()||'—',time:$('tAmsTime').value,inv:$('tAmsInv').value.trim()||'—'}},true);
+document.addEventListener('submit',e=>{if(e.target.id!=='ticketForm'||!amsSnap)return;const s=amsSnap;amsSnap=null;if(DB.flights.length<=s.before||!s.svcs.length)return;const f=DB.flights[DB.flights.length-1];
+ s.svcs.forEach(svc=>{const n=Math.max(3003,...DB.ams.map(a=>+a.id.slice(4)))+1;const id='AMS-'+n;DB.ams.push({pendingSync:!navigator.onLine,id,flight:f.no,svc,prov:s.prov,done:s.time?'Yes':'Pending',time:s.time||'—',inv:s.inv});logAdd('Recorded AMS service',id+' '+f.no)});
+ $('ticketForm').querySelectorAll('#amsChecks input').forEach(i=>i.checked=false);render();toast(t('AMS services recorded with this ticket.'));},false);
+
+/* ============ pre-work crew is automatic: every scheduled pre-work employee ============ */
+Object.assign(ES,{'Pre-work crew (automatic)':'Personal de pre-trabajo (automático)','Pre-work employees scheduled today are paid on this ticket automatically. Hourly employees are not listed.':'Los empleados de pre-trabajo programados hoy se pagan automáticamente en este ticket. No se incluyen los empleados por hora.'});
+function preworkCrew(){const w=new Date().getDay();return Object.keys(ROSTER).filter(id=>ROSTER[id].cat==='Pre-work'&&ROSTER[id].ok&&!ROSTER[id].off.includes(w))}
+go=(function(orig){return function(id){orig(id);const el=$('tCrew');if(el)el.value=preworkCrew().map(x=>ROSTER[x].name+' ('+x+')').join(', ')}})(go);
+render=(function(orig){return function(){orig();const el=$('tCrew');if(el)el.value=preworkCrew().map(id=>ROSTER[id].name+' ('+id+')').join(', ')}})(render);
+
+/* ============ 60 demo employees with a weekly schedule ============ */
+Object.assign(ES,{'Work':'Trabaja','Off':'Libre','Night':'Noche','Working today':'Trabajan hoy','Off today':'Libres hoy','Pre-work on duty':'Pre-trabajo hoy','Hourly on duty':'Por hora hoy','Each employee has two consecutive days off. Names and IDs are fictional.':'Cada empleado tiene dos días libres consecutivos. Nombres e IDs ficticios.','Weekly schedule. Each employee has two consecutive days off. Names and IDs are fictional.':'Horario semanal. Cada empleado tiene dos días libres consecutivos. Nombres e IDs ficticios.','Pre-work':'Pre-trabajo','Hourly':'Por hora','No employees match this filter.':'Ningún empleado coincide con este filtro.','Category':'Categoría','Shift':'Turno','All':'Todos'});
+(function(){
+ const FN=['Alex','Jordan','Taylor','Casey','Juan','Maria','Luis','Carlos','Ana','Diego','Sofia','Miguel','Lucia','Andres','Valeria','Pedro','Camila','Ricardo','Elena','Javier','Daniela','Mateo','Isabel','Hector','Paula','Rafael','Carmen','Victor','Gabriela','Sergio'];
+ const LN=['Morgan','Lee','Reed','Brooks','Ramirez','Gonzalez','Perez','Hernandez','Torres','Flores','Rivera','Diaz','Vargas','Castillo','Mendoza','Ortiz','Ruiz','Alvarez','Molina','Herrera','Campos','Salazar','Navarro','Ibarra','Ortega','Cruz','Delgado','Reyes','Moreno','Silva'];
+ let seed=20261114;const rnd=()=>{seed=(seed*1664525+1013904223)%4294967296;return seed/4294967296};
+ const gen={};
+ for(let i=0;i<60;i++){const cat=i<30?'Pre-work':'Hourly';const shift=(i%30)<15?'Day':'Night';const name=FN[i%30]+' '+LN[(Math.floor(i/30)*13+i)%30];const s=Math.floor(rnd()*7);gen['DEMO-'+(101+i)]={name,cat,shift,group:shift==='Day'?'A':'B',ok:true,off:[s,(s+1)%7]}}
+ Object.keys(ROSTER).forEach(k=>delete ROSTER[k]);Object.assign(ROSTER,gen);
+})();
+Object.assign(ES,{'All shifts':'Todos los turnos','All staff':'Todo el personal'});
+let rFilter={shift:'all',cat:'all'};
+function setRosterFilter(k,v){rFilter[k]=v;renderRoster()}
+function renderRoster(){
+ const el=$('rosterGrid');if(!el)return;el.className='';
+ const now=new Date(),dow=now.getDay(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const sun=new Date(today.getFullYear(),today.getMonth(),today.getDate()-dow);
+ const days=[...Array(7)].map((_,k)=>{const d=new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+k);return {label:d.toLocaleDateString(dateLoc(),{weekday:'short'}),date:d.toLocaleDateString(dateLoc(),{month:'short',day:'numeric'})}});
+ const ids=Object.keys(ROSTER).filter(id=>(rFilter.shift==='all'||ROSTER[id].shift===rFilter.shift)&&(rFilter.cat==='all'||ROSTER[id].cat===rFilter.cat));
+ const chip=(k,v,label)=>`<button type='button' aria-pressed='${rFilter[k]===v}' onclick="setRosterFilter('${k}','${v}')">${t(label)}</button>`;
+ const chips=`<div class='filters' role='group' aria-label='Filter'>${chip('shift','all','All shifts')}${chip('shift','Day','Day')}${chip('shift','Night','Night')}${chip('cat','all','All staff')}${chip('cat','Pre-work','Pre-work')}${chip('cat','Hourly','Hourly')}</div>`;
+ const head=`<tr><th>${t('Employee')}</th><th>${t('Shift')}</th><th>${t('Category')}</th>${days.map((d,k)=>`<th style='${k===dow?'color:var(--red)':''}'>${esc(d.label)}<br><span class='muted'>${esc(d.date)}</span></th>`).join('')}</tr>`;
+ const rows=ids.map(id=>{const r=ROSTER[id];return `<tr><td><b>${esc(r.name)}</b><div class='small muted'>${id}</div></td><td>${t(r.shift)}</td><td>${t(r.cat)}</td>${days.map((d,k)=>{const off=r.off.includes(k);return `<td style='${k===dow?'background:var(--paper)':''}'>${off?`<span class='pill'>${t('Off')}</span>`:`<span class='pill green'>${t('Work')}</span>`}</td>`}).join('')}</tr>`}).join('');
+ el.innerHTML=chips+`<div class='card' style='padding:6px 8px'><div class='tw'><table><thead>${head}</thead><tbody>${rows||`<tr><td colspan='10' class='empty'>${t('No employees match this filter.')}</td></tr>`}</tbody></table></div></div>`;
+ labelTables();
+ const on=Object.keys(ROSTER).filter(id=>!ROSTER[id].off.includes(dow));
+ const st=document.querySelectorAll('#employees .stats .stat');
+ if(st.length===4){const set=(i,k,v)=>{st[i].querySelector('.k').textContent=t(k);st[i].querySelector('.v').textContent=v};
+  set(0,'Working today',on.length);set(1,'Off today',Object.keys(ROSTER).length-on.length);
+  set(2,'Pre-work on duty',on.filter(id=>ROSTER[id].cat==='Pre-work').length);set(3,'Hourly on duty',on.filter(id=>ROSTER[id].cat==='Hourly').length);const nn=st[3].querySelector('.n');if(nn)nn.textContent='';}
+}
+render=(function(orig){return function(){orig();renderRoster()}})(render);
+render();
+
+/* ============ manual schedule changes: sick, vacation, no-show, extra shifts ============ */
+Object.assign(ES,{'Scheduled':'Programado','Extra shift':'Turno extra','Sick':'Enfermo','Vacation':'Vacaciones','No-show':'No se presentó','Not working today':'No trabajan hoy'});
+var rosterDays=rosterDays||[];
+function isoOf(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate()).toLocaleDateString('en-CA')}
+function patternStatus(id,d){return ROSTER[id].off.includes(d.getDay())?'Off':'Scheduled'}
+function statusFor(id,d){const ov=DB.overrides&&DB.overrides[isoOf(d)]&&DB.overrides[isoOf(d)][id];return ov||patternStatus(id,d)}
+function isWorking(s){return s==='Scheduled'||s==='Extra shift'}
+function preworkCrew(){const now=new Date();return Object.keys(ROSTER).filter(id=>ROSTER[id].cat==='Pre-work'&&ROSTER[id].ok&&isWorking(statusFor(id,now)))}
+function schedOptions(def){return (def==='Off'?['Off','Extra shift']:['Scheduled','Off']).concat(['Sick','Vacation','No-show'])}
+function schedClass(s){return isWorking(s)?'ok':s==='Off'?'off':'out'}
+function changeStatus(el){setStatus(el.dataset.id,rosterDays[+el.dataset.d].d,el.value)}
+function setStatus(id,d,val){DB.overrides=DB.overrides||{};const key=isoOf(d);DB.overrides[key]=DB.overrides[key]||{};
+ const def=patternStatus(id,d);
+ if(val===def)delete DB.overrides[key][id];else DB.overrides[key][id]=val;
+ if(!Object.keys(DB.overrides[key]).length)delete DB.overrides[key];
+ logAdd('Changed schedule',ROSTER[id].name+' ('+id+') '+key+': '+val);renderRoster();toast(ROSTER[id].name+': '+t(val));}
+document.head.insertAdjacentHTML('beforeend','<style>.sched{width:auto;min-width:120px;min-height:38px;padding:6px 10px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink)}.sched.ok{background:var(--green-bg);color:var(--green);border-color:transparent}.sched.off{background:var(--paper);color:var(--muted)}.sched.out{background:var(--red-bg);color:var(--red);border-color:transparent}</style>');
+function renderRoster(){
+ const el=$('rosterGrid');if(!el)return;el.className='';
+ const now=new Date(),dow=now.getDay(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+ const sun=new Date(today.getFullYear(),today.getMonth(),today.getDate()-dow);
+ rosterDays=[...Array(7)].map((_,k)=>{const d=new Date(sun.getFullYear(),sun.getMonth(),sun.getDate()+k);return {d,label:d.toLocaleDateString(dateLoc(),{weekday:'short'}),date:d.toLocaleDateString(dateLoc(),{month:'short',day:'numeric'})}});
+ const ids=Object.keys(ROSTER).filter(id=>(rFilter.shift==='all'||ROSTER[id].shift===rFilter.shift)&&(rFilter.cat==='all'||ROSTER[id].cat===rFilter.cat));
+ const chip=(k,v,label)=>`<button type='button' aria-pressed='${rFilter[k]===v}' onclick="setRosterFilter('${k}','${v}')">${t(label)}</button>`;
+ const chips=`<div class='filters' role='group' aria-label='Filter'>${chip('shift','all','All shifts')}${chip('shift','Day','Day')}${chip('shift','Night','Night')}${chip('cat','all','All staff')}${chip('cat','Pre-work','Pre-work')}${chip('cat','Hourly','Hourly')}</div>`;
+ const head=`<tr><th>${t('Employee')}</th><th>${t('Shift')}</th><th>${t('Category')}</th>${rosterDays.map((x,k)=>`<th style='${k===dow?'color:var(--red)':''}'>${esc(x.label)}<br><span class='muted'>${esc(x.date)}</span></th>`).join('')}</tr>`;
+ const rows=ids.map(id=>{const r=ROSTER[id];
+  const cells=rosterDays.map((x,k)=>{const s=statusFor(id,x.d);const opts=schedOptions(patternStatus(id,x.d));if(!opts.includes(s))opts.push(s);
+   return `<td style='${k===dow?'background:var(--paper)':''}'><select class='sched ${schedClass(s)}' aria-label='${esc(r.name)} ${esc(x.label)}' data-id='${id}' data-d='${k}' onchange='changeStatus(this)'>${opts.map(v=>`<option value='${v}'${v===s?' selected':''}>${t(v)}</option>`).join('')}</select></td>`}).join('');
+  return `<tr><td><b>${esc(r.name)}</b><div class='small muted'>${id}</div></td><td>${t(r.shift)}</td><td>${t(r.cat)}</td>${cells}</tr>`}).join('');
+ el.innerHTML=chips+`<div class='card' style='padding:6px 8px'><div class='tw'><table><thead>${head}</thead><tbody>${rows||`<tr><td colspan='10' class='empty'>${t('No employees match this filter.')}</td></tr>`}</tbody></table></div></div>`;
+ labelTables();
+ const working=Object.keys(ROSTER).filter(id=>isWorking(statusFor(id,now)));
+ const st=document.querySelectorAll('#employees .stats .stat');
+ if(st.length===4){const set=(i,k,v)=>{st[i].querySelector('.k').textContent=t(k);st[i].querySelector('.v').textContent=v;const n=st[i].querySelector('.n');if(n)n.textContent=''};
+  set(0,'Working today',working.length);set(1,'Not working today',Object.keys(ROSTER).length-working.length);
+  set(2,'Pre-work on duty',working.filter(id=>ROSTER[id].cat==='Pre-work').length);set(3,'Hourly on duty',working.filter(id=>ROSTER[id].cat==='Hourly').length);}
+}
+
+/* ============ stairs service: only on unloading tickets ============ */
+Object.assign(ES,{'Stairs service':'Servicio de escaleras'});
+toggleCargo=(function(orig){return function(){orig();const un=$('tOp').value==='Unloading';document.querySelectorAll('[data-op]').forEach(el=>{el.hidden=!un;if(!un){const c=el.querySelector('input');if(c)c.checked=false}})}})(toggleCargo);
+toggleCargo();
+
+/* ============ ticket numbers (10001, 10002, ...) and editing tickets ============ */
+Object.assign(ES,{'Ticket number':'Número de ticket','Edit':'Editar','Save changes':'Guardar cambios','Cancel edit':'Cancelar edición','Editing ticket':'Editando ticket','AMS services are not changed when editing a ticket.':'Los servicios AMS no cambian al editar un ticket.','Ticket edited.':'Ticket editado.','Edited ticket':'Ticket editado'});
+let EDIT=null,flightsBefore=0;
+function nextTicketNo(){return Math.max(10000,...DB.flights.map(f=>f.ticketNo||0))+1}
+function ensureTicketNos(){DB.flights.forEach(f=>{if(!f.ticketNo)f.ticketNo=nextTicketNo()})}
+function refreshTicketNo(){const el=$('tNumber');if(!el)return;const f=EDIT?DB.flights.find(x=>x.id===EDIT):null;el.value=f?String(f.ticketNo):String(nextTicketNo())}
+(function(){
+ const nf=document.createElement('div');nf.className='field full';const nl=document.createElement('label');nl.htmlFor='tNumber';nl.textContent='Ticket number';const ni=document.createElement('input');ni.id='tNumber';ni.readOnly=true;nf.append(nl,ni);$('ticketForm').prepend(nf);
+ const banner=document.createElement('div');banner.id='editBanner';banner.className='note info';banner.hidden=true;
+ const bt=document.createElement('span');bt.textContent='Editing ticket ';const bn=document.createElement('span');bn.id='editBannerNo';const bm=document.createElement('span');bm.textContent=' AMS services are not changed when editing a ticket.';
+ const cb=document.createElement('button');cb.type='button';cb.className='btn sm';cb.textContent='Cancel edit';cb.addEventListener('click',()=>cancelEdit());
+ banner.append(bt,bn,bm,cb);$('ticketForm').parentElement.prepend(banner);
+})();
+function startEdit(id){const f=DB.flights.find(x=>x.id===id);if(!f||f.status==='Voided')return;
+ EDIT=id;go('newticket');
+ const set=(k,v)=>{const el=$(k);if(el)el.value=v==null?'':v};const x=f.x||{};const d=(f.date||'').split('/');
+ set('tAir',f.airline);set('tNo',f.no);set('tCall',f.call);set('tOp',f.op);toggleCargo();
+ set('tDate',d.length===3?d[2]+'-'+d[0]+'-'+d[1]:todayISO());
+ set('tStart',f.start);set('tEnd',f.end);set('tBlock',x.block);set('tPl',x.pl);set('tPo',x.po);set('tBulk',x.bulk);set('tLm',x.lm);set('tNotes',x.notes);
+ document.querySelectorAll('#amsChecks input').forEach(i=>i.checked=false);
+ $('editBannerNo').textContent=String(f.ticketNo);$('editBanner').hidden=false;
+ $('ticketForm').querySelector('button[type=submit]').textContent='Save changes';
+ translateDOM();refreshTicketNo();}
+function cancelEdit(){EDIT=null;$('editBanner').hidden=true;const fm=$('ticketForm');fm.reset();$('tDate').value=todayISO();toggleCargo();fm.querySelector('button[type=submit]').textContent='Save ticket';translateDOM();refreshTicketNo()}
+document.addEventListener('submit',e=>{if(e.target.id==='ticketForm')flightsBefore=DB.flights.length},true);
+document.addEventListener('submit',e=>{if(e.target.id!=='ticketForm'||DB.flights.length<=flightsBefore)return;
+ const created=DB.flights[DB.flights.length-1];
+ if(EDIT){const orig=DB.flights.find(x=>x.id===EDIT);DB.flights.pop();
+  if(orig){Object.assign(orig,{airline:created.airline,no:created.no,call:created.call,op:created.op,start:created.start,end:created.end,date:created.date,crew:created.crew,x:created.x,status:created.status,pendingSync:!navigator.onLine});
+   if(DB.log&&DB.log[0]&&DB.log[0].action==='Created ticket')DB.log.shift();
+   logAdd('Edited ticket',orig.ticketNo+' '+orig.no);toast(t('Ticket edited.'));}
+  EDIT=null;$('editBanner').hidden=true;$('ticketForm').querySelector('button[type=submit]').textContent='Save ticket';translateDOM();render();refreshTicketNo();return;}
+ if(!created.ticketNo)created.ticketNo=nextTicketNo();if(DB.log&&DB.log[0]&&DB.log[0].action==='Created ticket')DB.log[0].ref=created.ticketNo+' '+created.no;save();
+ render();refreshTicketNo();toast('Ticket '+created.ticketNo+' '+t('saved.'));
+},false);
+go=(function(orig){return function(id){orig(id);if(id==='newticket')refreshTicketNo()}})(go);
+actionBtn=(function(orig){return function(f){return orig(f)+(f.status!=='Voided'?`<button class='btn sm' onclick="startEdit('${f.id}')">${t('Edit')}</button> `:'')}})(actionBtn);
+render=(function(orig){return function(){ensureTicketNos();orig()}})(render);
+document.querySelectorAll('nav button[data-page]').forEach(b=>b.addEventListener('click',()=>{if(b.dataset.page!=='newticket'&&EDIT)cancelEdit()}));
+ensureTicketNos();save();translateDOM();render();refreshTicketNo();
+
+/* ============ offline, sync, install ============ */
+Object.assign(ES,{"Bulk cargo (kg)":"Carga a granel (kg)","Install app":"Instalar app","Sync now":"Sincronizar ahora","Pending sync":"Pendiente de sincronizar",
+ "Offline. Changes are saved on this device and will sync when you reconnect.":"Sin conexión. Los cambios se guardan en este dispositivo y se sincronizarán al reconectarse.",
+ "records waiting to sync":"registros esperando sincronización","record waiting to sync":"registro esperando sincronización","Nothing to sync.":"Nada que sincronizar.",
+ "This needs a connection. Try again when online.":"Esto requiere conexión. Intente de nuevo con conexión.",
+ "Synced":"Sincronizados","records (demo: no server is connected).":"registros (demo: no hay servidor conectado).",
+ "On iPad: tap Share, then Add to Home Screen. The app opens full-screen and keeps working offline after its first load.":"En iPad: toque Compartir y luego Agregar a pantalla de inicio. La app se abre a pantalla completa y sigue funcionando sin conexión después de la primera carga.",
+ "Simulated sync":"Sincronización simulada"});
+function pendingCount(){return DB.flights.filter(f=>f.pendingSync).length+DB.supp.filter(s=>s.pendingSync).length+DB.ams.filter(a=>a.pendingSync).length}
+function updateNet(){
+ const n=pendingCount(),off=!navigator.onLine,bar=$('netBar');
+ if(!off&&!n){bar.hidden=true;return}
+ bar.hidden=false;
+ $('netText').textContent=off?t('Offline. Changes are saved on this device and will sync when you reconnect.'):n+' '+t(n===1?'record waiting to sync':'records waiting to sync');
+ $('syncBtn').hidden=off||!n;
+}
+function syncNow(){
+ if(!navigator.onLine)return toast(t('This needs a connection. Try again when online.'));
+ const n=pendingCount();if(!n)return toast(t('Nothing to sync.'));
+ DB.flights.forEach(f=>f.pendingSync=false);DB.supp.forEach(s=>s.pendingSync=false);DB.ams.forEach(a=>a.pendingSync=false);
+ logAdd('Simulated sync',n+' '+'records');render();
+ toast(t('Synced')+' '+n+' '+t('records (demo: no server is connected).'));
+}
+window.addEventListener('online',()=>{render()});
+window.addEventListener('offline',()=>{updateNet()});
+// keep the connection bar in step with every screen update
+render=(function(orig){return function(){orig();updateNet()}})(render);
+// install prompt
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;$('installBtn').hidden=false});
+$('installBtn').addEventListener('click',async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$('installBtn').hidden=true});
+window.addEventListener('appinstalled',()=>{$('installBtn').hidden=true});
+// offline support: cache the app shell
+if('serviceWorker' in navigator&&location.protocol.startsWith('http')){navigator.serviceWorker.register('sw.js').catch(err=>console.warn('Service worker not registered:',err))}
+translateDOM();updateNet();
+</script>
+</body>
+</html>
